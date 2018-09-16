@@ -1,5 +1,10 @@
-IceBreaker
-----------
+.. icebreaker documentation master file, created by
+   sphinx-quickstart on Sun Sep 16 16:41:52 2018.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to icebreaker's documentation!
+======================================
 
 Icebreaker provides Python interface for the `JBEI ICE sample manager <https://github.com/JBEI/ice>`_.
 
@@ -102,6 +107,13 @@ Result:
     Primer PRV_EMMA_IN00038 is in PRIMER_PLATE_1/A06.
     Primer PRV_EMMA_IN00068 is in PRIMER_PLATE_1/G09.
 
+API
+---
+
+.. autoclass:: icebreaker.IceClient
+  :members:
+
+
 Getting an ICE token
 --------------------
 
@@ -113,7 +125,7 @@ the web interface as follows (see screenshot for indications):
 2. Click on "API keys"
 3. Click on "create new". Note everything down !
 
-.. image:: https://github.com/Edinburgh-Genome-Foundry/icebreaker/raw/master/docs/_static/api_key_screenshot.png
+.. image:: _static/api_key_screenshot.png
    :alt: screenshot
    :align: center
 

@@ -1,0 +1,510 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to icebreaker’s documentation! &mdash; icebreaker 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="icebreaker 0.1.0 documentation" href="#"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="#" class="icon icon-home"> icebreaker
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Welcome to icebreaker’s documentation!</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#example-of-use">Example of use</a></li>
+<li><a class="reference internal" href="#api">API</a></li>
+<li><a class="reference internal" href="#getting-an-ice-token">Getting an ICE token</a></li>
+<li><a class="reference internal" href="#license-mit">License = MIT</a></li>
+<li><a class="reference internal" href="#more-biology-software">More biology software</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">icebreaker</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>Welcome to icebreaker’s documentation!</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-icebreaker-s-documentation">
+<h1>Welcome to icebreaker’s documentation!<a class="headerlink" href="#welcome-to-icebreaker-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Icebreaker provides Python interface for the <a class="reference external" href="https://github.com/JBEI/ice">JBEI ICE sample manager</a>.</p>
+<p>See the full API documentation <a class="reference external" href="https://edinburgh-genome-foundry.github.io/icebreaker/">here</a></p>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Icebreaker is written for Python 3+. You can install icebreaker via PIP:</p>
+<div class="code highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">icebreaker</span>
+</pre></div>
+</div>
+<p>Alternatively, you can unzip the sources in a folder and type</p>
+<div class="code highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="example-of-use">
+<h2>Example of use<a class="headerlink" href="#example-of-use" title="Permalink to this headline">¶</a></h2>
+<p>In this example we assume that we are a lab who wants to find primers from its
+database to sequence a given construct. We will (1) pull all our primers from
+ICE, (2) find which primers are adapted to our sequence, using the
+<a class="reference external" href="https://edinburgh-genome-foundry.github.io/Primavera/">Primavera package</a>, and
+(3) we will ask ICE for the location of the selected primers.</p>
+<p>First connect to your ICE database using your API token (see below for how to create a token).</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">icebreaker</span>
+
+<span class="c1"># CONNECT TO ICE</span>
+
+<span class="n">ice</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">IceClient</span><span class="p">(</span>
+    <span class="n">root</span><span class="o">=</span><span class="s2">&quot;https://ice.genomefoundry.org&quot;</span><span class="p">,</span>
+    <span class="n">api_token</span><span class="o">=</span><span class="s2">&quot;WMnlYlWHz+BC+7eFV=...&quot;</span><span class="p">,</span>
+    <span class="n">api_token_client</span> <span class="o">=</span> <span class="s2">&quot;icebot&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Next we pull all primers in the database:</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="c1"># FIND THE ID OF THE FOLDER WITH ALL PRIMERS</span>
+<span class="n">primers_folder</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_folder_id</span><span class="p">(</span><span class="s2">&quot;PRIMERS&quot;</span><span class="p">,</span> <span class="n">collection</span><span class="o">=</span><span class="s2">&quot;SHARED&quot;</span><span class="p">)</span>
+
+<span class="c1"># GET INFOS ON ALL ENTRIES IN THE FOLDER (PRIMER NAME, ID, CREATOR...)</span>
+<span class="n">primers_entries</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_folder_entries</span><span class="p">(</span><span class="n">primers_folder</span><span class="p">)</span>
+
+<span class="c1"># GET A BIOPYTHON RECORD FOR EACH PRIMER</span>
+<span class="n">primers_records</span> <span class="o">=</span> <span class="p">{</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_part_record</span><span class="p">(</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">primers_entries</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Next provide this information to Primavera and select some primers (see the
+<a class="reference external" href="https://edinburgh-genome-foundry.github.io/Primavera/">Primavera docs</a>):</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">primavera</span> <span class="k">import</span> <span class="n">PrimerSelector</span><span class="p">,</span> <span class="n">Primer</span><span class="p">,</span> <span class="n">load_record</span>
+
+<span class="n">available_primers</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Primer</span><span class="p">(</span><span class="n">sequence</span><span class="o">=</span><span class="n">primers_records</span><span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">seq</span><span class="o">.</span><span class="n">tostring</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">entry</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">ice_id</span><span class="o">=</span><span class="n">entry</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">primers_entries</span>
+<span class="p">]</span>
+<span class="n">constructs</span> <span class="o">=</span> <span class="p">[</span><span class="n">load_record</span><span class="p">(</span><span class="s2">&quot;RTM3_39.gb&quot;</span><span class="p">,</span> <span class="n">linear</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+<span class="n">selector</span> <span class="o">=</span> <span class="n">PrimerSelector</span><span class="p">(</span><span class="n">read_range</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span> <span class="n">tm_range</span><span class="o">=</span><span class="p">(</span><span class="mi">55</span><span class="p">,</span> <span class="mi">70</span><span class="p">),</span>
+                        <span class="n">size_range</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">25</span><span class="p">),</span> <span class="n">coverage_resolution</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                        <span class="n">primer_reuse_bonus</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="n">selected_primers</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">select_primers</span><span class="p">(</span><span class="n">constructs</span><span class="p">,</span> <span class="n">available_primers</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally we look for available samples for each primer:</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">selected_primers</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">selected_primers</span><span class="p">,</span> <span class="p">[]))</span>
+<span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">selected_primers</span><span class="p">:</span>
+    <span class="n">ice_id</span> <span class="o">=</span> <span class="n">primer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ice_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ice_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_part_samples</span><span class="p">(</span><span class="n">ice_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">sample_location_string</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Primer </span><span class="si">%s</span><span class="s2"> is in </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">primer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Result:</p>
+<div class="code highlight-default"><div class="highlight"><pre><span></span><span class="n">Primer</span> <span class="n">PRV_EMMA_IN00042</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">E06</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00043</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">F06</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00028</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G04</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00060</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G08</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00064</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">C09</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00038</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">A06</span><span class="o">.</span>
+<span class="n">Primer</span> <span class="n">PRV_EMMA_IN00068</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G09</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="icebreaker.IceClient">
+<em class="property">class </em><code class="descclassname">icebreaker.</code><code class="descname">IceClient</code><span class="sig-paren">(</span><em>root</em>, <em>api_token</em>, <em>api_token_client</em>, <em>cache='memory'</em>, <em>logger='bar'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Session to easily interact with an ICE instance.</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="icebreaker.IceClient.request">
+<code class="descname">request</code><span class="sig-paren">(</span><em>method</em>, <em>endpoint</em>, <em>params=None</em>, <em>data=None</em>, <em>response_type='json'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a request to the ICE server.</p>
+<p>This is a generic method used by all the subsequence <a href="#id1"><span class="problematic" id="id2">get_</span></a> methods.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>method</strong></p>
+<blockquote>
+<div><p>One of “GET”, “POST”, etc. see documentation of the Request library.</p>
+</div></blockquote>
+<p><strong>endpoint</strong></p>
+<blockquote>
+<div><p>Part of the address after “http/…/rest/”.</p>
+</div></blockquote>
+<p><strong>params</strong></p>
+<blockquote>
+<div><p>Parameters to add to the url.</p>
+</div></blockquote>
+<p><strong>data</strong></p>
+<blockquote>
+<div><p>Json data to add to the request</p>
+</div></blockquote>
+<p><strong>response_type</strong></p>
+<blockquote class="last">
+<div><p>Use “json” if you expect JSON to be returned, or “file” if
+you are expecting a file.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ice</span> <span class="o">=</span> <span class="n">IceClient</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ice</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;folders/12/entries&quot;</span><span class="p">,</span>
+<span class="go">                params=dict(limit=20))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_samples">
+<code class="descname">get_part_samples</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of samples (dicts) for the part with that id.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_sequence">
+<code class="descname">get_part_sequence</code><span class="sig-paren">(</span><em>id</em>, <em>format='genbank'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return genbank text for the part with that id.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_record">
+<code class="descname">get_part_record</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a biopython record for the part with that id.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_infos">
+<code class="descname">get_part_infos</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_infos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_infos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return infos (name, creation date…) for the part with that id.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_id">
+<code class="descname">get_part_id</code><span class="sig-paren">(</span><em>name</em>, <em>folder_id=None</em>, <em>collection=None</em>, <em>use_filter=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the id of a part, given a name.</p>
+<p>This method works by pulling all data from selected folders and looking
+for the part’s name. Therefore it can be very long for big folders.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong></p>
+<blockquote>
+<div><p>Name of the part to be IDed</p>
+</div></blockquote>
+<p><strong>folder_id</strong></p>
+<blockquote>
+<div><p>Folder ID (or list of) where to find the part.</p>
+</div></blockquote>
+<p><strong>collection</strong></p>
+<blockquote>
+<div><p>Collection where to find the part. Can be provided instead of
+folder_id.</p>
+</div></blockquote>
+<p><strong>use_filter</strong></p>
+<blockquote class="last">
+<div><p>If true, the ICE request will use filtering. This if faster for a
+one-off ID search but if you use caching and do many part IDing you
+will be better off without the filtering (your first search will be
+very long but next searches will be instantaneous)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.search">
+<code class="descname">search</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not yet implemented. Ask for it !</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_folder_infos">
+<code class="descname">get_folder_infos</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_infos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_infos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return infos (dict) on the folder whose id is provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_folder_entries">
+<code class="descname">get_folder_entries</code><span class="sig-paren">(</span><em>folder_id</em>, <em>must_contain=None</em>, <em>as_iterator=False</em>, <em>limit=None</em>, <em>batch_size=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_entries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_entries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list or iterator of all entries in a given ICE folder.</p>
+<p>Each entry is represented by a dictionnary giving its name, creation
+date, and other infos.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>folder_id</strong></p>
+<blockquote>
+<div><p>ID of the folder to browse.</p>
+</div></blockquote>
+<p><strong>must_contain</strong></p>
+<blockquote>
+<div><p>If provided, either the id or the name of the entry (part) must
+contain that string.</p>
+</div></blockquote>
+<p><strong>limit</strong></p>
+<blockquote>
+<div><p>If provided, only the nth first entries are considered.</p>
+</div></blockquote>
+<p><strong>batch_size</strong></p>
+<blockquote>
+<div><p>How many parts should be pulled from ICE at the same time.</p>
+</div></blockquote>
+<p><strong>as_iterator</strong></p>
+<blockquote class="last">
+<div><p>If true, an iterator is returned instead of a list (useful for
+folders with many parts)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_collection_folders">
+<code class="descname">get_collection_folders</code><span class="sig-paren">(</span><em>collection</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_collection_folders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_collection_folders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of folders in a given collection.</p>
+<p>Collection must be one of:
+FEATURED PERSONAL SHARED DRAFTS PENDING DELETED</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="getting-an-ice-token">
+<h2>Getting an ICE token<a class="headerlink" href="#getting-an-ice-token" title="Permalink to this headline">¶</a></h2>
+<p>There are several ways to get ICE tokens. We suggest you create one throug
+the web interface as follows (see screenshot for indications):</p>
+<ol class="arabic simple" start="0">
+<li>Create an account with administrator rights</li>
+<li>Go to the administrator panel</li>
+<li>Click on “API keys”</li>
+<li>Click on “create new”. Note everything down !</li>
+</ol>
+<img alt="screenshot" class="align-center" src="_images/api_key_screenshot.png" />
+</div>
+<div class="section" id="license-mit">
+<h2>License = MIT<a class="headerlink" href="#license-mit" title="Permalink to this headline">¶</a></h2>
+<p>Icebreaker is an open-source software originally written at the Edinburgh
+Genome Foundry by <a class="reference external" href="https://github.com/Zulko">Zulko</a> and <a class="reference external" href="https://github.com/Edinburgh-Genome-Foundry/icebreaker">released on
+Github</a> under
+the MIT licence (¢ Edinburg Genome Foundry). Everyone is welcome to
+contribute !</p>
+</div>
+<div class="section" id="more-biology-software">
+<h2>More biology software<a class="headerlink" href="#more-biology-software" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="https://edinburgh-genome-foundry.github.io/"><img alt="https://raw.githubusercontent.com/Edinburgh-Genome-Foundry/Edinburgh-Genome-Foundry.github.io/master/static/imgs/logos/egf-codon-horizontal.png" src="https://raw.githubusercontent.com/Edinburgh-Genome-Foundry/Edinburgh-Genome-Foundry.github.io/master/static/imgs/logos/egf-codon-horizontal.png" /></a>
+<p>Icebreaker is part of the <a class="reference external" href="https://edinburgh-genome-foundry.github.io/">EGF Codons</a> synthetic biology software suite for DNA design, manufacturing and validation.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Zulko.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
