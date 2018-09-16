@@ -113,7 +113,7 @@ the web interface as follows (see screenshot for indications):
 2. Click on "API keys"
 3. Click on "create new". Note everything down !
 
-.. image:: picture.jpeg
+.. image:: https://github.com/Edinburgh-Genome-Foundry/icebreaker/raw/master/docs/_static/api_key_screenshot.png
    :alt: screenshot
    :align: center
 
