@@ -34,19 +34,48 @@ ICE, (2) find which primers are adapted to our sequence, using the
 `Primavera package <https://edinburgh-genome-foundry.github.io/Primavera/>`_, and
 (3) we will ask ICE for the location of the selected primers.
 
-First connect to your ICE database using your API token (see below for how to create a token).
+
+Connexion to an ICE instance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can connecct to your ICE instance using either an API token (see below
+for how to create a token), or an email/password authentication.
 
 .. code:: python
 
     import icebreaker
 
     # CONNECT TO ICE
-
-    ice = icebreaker.IceClient(
-        root="https://ice.genomefoundry.org",
+    configuration = dict(
+        root="https://my.ice.instance.org",
         api_token="WMnlYlWHz+BC+7eFV=...",
         api_token_client = "icebot"
     )
+    ice = icebreaker.IceClient(configuration)
+
+Or:
+
+.. code:: python
+
+    # CONNECT TO ICE
+    configuration = dict(
+        root="https://my.ice.instance.org",
+        email="michael.swann@genomefoundry.org",
+        password = "ic3ic3baby"
+    )
+    ice = icebreaker.IceClient(configuration)
+
+The configuration can also be written in a yaml file so you can write
+``IceClient('config.yml')`` where ``config.yml`` reads as follows:
+
+```
+root: https://my.ice.instance.org
+email: michael.swann@genomefoundry.org
+password: ic3ic3baby
+```
+
+Extracting all records from a folder
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Next we pull all primers in the database:
 
@@ -59,8 +88,12 @@ Next we pull all primers in the database:
     primers_entries = ice.get_folder_entries(primers_folder)
 
     # GET A BIOPYTHON RECORD FOR EACH PRIMER
-    primers_records = {primer["id"]: ice.get_part_record(primer["id"])
-                    for primer in primers_entries}
+    primers_records = {primer["id"]: ice.get_record(primer["id"])
+                       for primer in primers_entries}
+
+
+Primer selection with Primavera
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Next provide this information to Primavera and select some primers (see the
 `Primavera docs <https://edinburgh-genome-foundry.github.io/Primavera/>`_):
@@ -81,6 +114,9 @@ Next provide this information to Primavera and select some primers (see the
                             primer_reuse_bonus=200)
     selected_primers = selector.select_primers(constructs, available_primers)
 
+
+Finding available samples
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Finally we look for available samples for each primer:
 

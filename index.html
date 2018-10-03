@@ -92,7 +92,13 @@
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Welcome to icebreaker’s documentation!</a><ul>
 <li><a class="reference internal" href="#installation">Installation</a></li>
-<li><a class="reference internal" href="#example-of-use">Example of use</a></li>
+<li><a class="reference internal" href="#example-of-use">Example of use</a><ul>
+<li><a class="reference internal" href="#connexion-to-an-ice-instance">Connexion to an ICE instance</a></li>
+<li><a class="reference internal" href="#extracting-all-records-from-a-folder">Extracting all records from a folder</a></li>
+<li><a class="reference internal" href="#primer-selection-with-primavera">Primer selection with Primavera</a></li>
+<li><a class="reference internal" href="#finding-available-samples">Finding available samples</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#api">API</a></li>
 <li><a class="reference internal" href="#getting-an-ice-token">Getting an ICE token</a></li>
 <li><a class="reference internal" href="#license-mit">License = MIT</a></li>
@@ -184,18 +190,41 @@ database to sequence a given construct. We will (1) pull all our primers from
 ICE, (2) find which primers are adapted to our sequence, using the
 <a class="reference external" href="https://edinburgh-genome-foundry.github.io/Primavera/">Primavera package</a>, and
 (3) we will ask ICE for the location of the selected primers.</p>
-<p>First connect to your ICE database using your API token (see below for how to create a token).</p>
+<div class="section" id="connexion-to-an-ice-instance">
+<h3>Connexion to an ICE instance<a class="headerlink" href="#connexion-to-an-ice-instance" title="Permalink to this headline">¶</a></h3>
+<p>You can connecct to your ICE instance using either an API token (see below
+for how to create a token), or an email/password authentication.</p>
 <div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">icebreaker</span>
 
 <span class="c1"># CONNECT TO ICE</span>
-
-<span class="n">ice</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">IceClient</span><span class="p">(</span>
-    <span class="n">root</span><span class="o">=</span><span class="s2">&quot;https://ice.genomefoundry.org&quot;</span><span class="p">,</span>
+<span class="n">configuration</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">root</span><span class="o">=</span><span class="s2">&quot;https://my.ice.instance.org&quot;</span><span class="p">,</span>
     <span class="n">api_token</span><span class="o">=</span><span class="s2">&quot;WMnlYlWHz+BC+7eFV=...&quot;</span><span class="p">,</span>
     <span class="n">api_token_client</span> <span class="o">=</span> <span class="s2">&quot;icebot&quot;</span>
 <span class="p">)</span>
+<span class="n">ice</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">IceClient</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Or:</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="c1"># CONNECT TO ICE</span>
+<span class="n">configuration</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">root</span><span class="o">=</span><span class="s2">&quot;https://my.ice.instance.org&quot;</span><span class="p">,</span>
+    <span class="n">email</span><span class="o">=</span><span class="s2">&quot;michael.swann@genomefoundry.org&quot;</span><span class="p">,</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="s2">&quot;ic3ic3baby&quot;</span>
+<span class="p">)</span>
+<span class="n">ice</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">IceClient</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The configuration can also be written in a yaml file so you can write
+<code class="docutils literal"><span class="pre">IceClient('config.yml')</span></code> where <code class="docutils literal"><span class="pre">config.yml</span></code> reads as follows:</p>
+<p><code class="docutils literal"><span class="pre">`</span>
+<span class="pre">root:</span> <span class="pre">https://my.ice.instance.org</span>
+<span class="pre">email:</span> <span class="pre">michael.swann&#64;genomefoundry.org</span>
+<span class="pre">password:</span> <span class="pre">ic3ic3baby</span>
+<span class="pre">`</span></code></p>
+</div>
+<div class="section" id="extracting-all-records-from-a-folder">
+<h3>Extracting all records from a folder<a class="headerlink" href="#extracting-all-records-from-a-folder" title="Permalink to this headline">¶</a></h3>
 <p>Next we pull all primers in the database:</p>
 <div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="c1"># FIND THE ID OF THE FOLDER WITH ALL PRIMERS</span>
 <span class="n">primers_folder</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_folder_id</span><span class="p">(</span><span class="s2">&quot;PRIMERS&quot;</span><span class="p">,</span> <span class="n">collection</span><span class="o">=</span><span class="s2">&quot;SHARED&quot;</span><span class="p">)</span>
@@ -204,10 +233,13 @@ ICE, (2) find which primers are adapted to our sequence, using the
 <span class="n">primers_entries</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_folder_entries</span><span class="p">(</span><span class="n">primers_folder</span><span class="p">)</span>
 
 <span class="c1"># GET A BIOPYTHON RECORD FOR EACH PRIMER</span>
-<span class="n">primers_records</span> <span class="o">=</span> <span class="p">{</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_part_record</span><span class="p">(</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
-                <span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">primers_entries</span><span class="p">}</span>
+<span class="n">primers_records</span> <span class="o">=</span> <span class="p">{</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">primer</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+                   <span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">primers_entries</span><span class="p">}</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="primer-selection-with-primavera">
+<h3>Primer selection with Primavera<a class="headerlink" href="#primer-selection-with-primavera" title="Permalink to this headline">¶</a></h3>
 <p>Next provide this information to Primavera and select some primers (see the
 <a class="reference external" href="https://edinburgh-genome-foundry.github.io/Primavera/">Primavera docs</a>):</p>
 <div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">primavera</span> <span class="k">import</span> <span class="n">PrimerSelector</span><span class="p">,</span> <span class="n">Primer</span><span class="p">,</span> <span class="n">load_record</span>
@@ -225,6 +257,9 @@ ICE, (2) find which primers are adapted to our sequence, using the
 <span class="n">selected_primers</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">select_primers</span><span class="p">(</span><span class="n">constructs</span><span class="p">,</span> <span class="n">available_primers</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="finding-available-samples">
+<h3>Finding available samples<a class="headerlink" href="#finding-available-samples" title="Permalink to this headline">¶</a></h3>
 <p>Finally we look for available samples for each primer:</p>
 <div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">selected_primers</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">selected_primers</span><span class="p">,</span> <span class="p">[]))</span>
 <span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">selected_primers</span><span class="p">:</span>
@@ -245,6 +280,7 @@ ICE, (2) find which primers are adapted to our sequence, using the
 <span class="n">Primer</span> <span class="n">PRV_EMMA_IN00038</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">A06</span><span class="o">.</span>
 <span class="n">Primer</span> <span class="n">PRV_EMMA_IN00068</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G09</span><span class="o">.</span>
 </pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="api">
