@@ -62,11 +62,11 @@ Or:
 The configuration can also be written in a yaml file so you can write
 ``IceClient('config.yml')`` where ``config.yml`` reads as follows:
 
-```
-root: https://my.ice.instance.org
-email: michael.swann@genomefoundry.org
-password: ic3ic3baby
-```
+.. code:: yaml
+
+    root: https://my.ice.instance.org
+    email: michael.swann@genomefoundry.org
+    password: ic3ic3baby
 
 Extracting all records from a folder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
