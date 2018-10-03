@@ -15,7 +15,7 @@ ice = icebreaker.IceClient(
 
 primers_folder = ice.get_folder_id("PRIMERS", collection="SHARED")
 available_primers = [
-    Primer(sequence=ice.get_part_record(entry["id"]).seq.tostring(),
+    Primer(sequence=ice.get_record(entry["id"]).seq.tostring(),
            name=entry["name"],
            metadata=dict(ice_id=entry['id']))
     for entry in ice.get_folder_entries(primers_folder)

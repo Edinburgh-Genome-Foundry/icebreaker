@@ -6,6 +6,11 @@ from icebreaker.tools import load_record
 
 conf_folder = os.path.join('tests', 'configs')
 
+ice_admin = icebreaker.IceClient(os.path.join(conf_folder, 'admin_auth.yml'))
+result = ice_admin.rebuild_search_indexes()
+assert result.ok
+time.sleep(5)
+
 def test_auth():
     ice = icebreaker.IceClient(os.path.join(conf_folder, 'john_doe_token.yml'))
     assert (len(ice.get_collection_folders('PERSONAL')) >  0)

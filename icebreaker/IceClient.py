@@ -94,8 +94,8 @@ class IceClient:
     def get_new_session_id(self, email, password):
         """Authenticate and receive a new session ID.
 
-        This is automatically called in ``IceClient(config)`` if the ``config``
-        contains an email and password.
+        This is automatically called in IceClient if the config contains an
+        email and password.
         """
         data = dict(email=email, password=password)
         response = self.request('POST', 'accesstokens', data=data)
@@ -109,7 +109,8 @@ class IceClient:
                 files=None, response_type='json'):
         """Make a request to the ICE server.
 
-        This is a generic method used by all the subsequence get_ methods.
+        This is a generic method used by all the subsequent methods, and wraps
+        the ``requests.request`` method
 
         Examples
         --------
