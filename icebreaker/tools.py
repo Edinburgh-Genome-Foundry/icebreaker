@@ -13,3 +13,18 @@ def ice_genbank_to_record(genbank_txt):
     lines[0] += max(0, 80 - len(lines[0])) * ' '
     genbank_txt = '\n'.join(lines)
     return SeqIO.read(StringIO(genbank_txt), format='genbank')
+
+def load_record(filename, name="unnamed", fmt='auto'):
+    """Load a FASTA/Genbank/... record"""
+    if fmt is not 'auto':
+        record = SeqIO.read(filename, fmt)
+    elif filename.lower().endswith(("gb", "gbk")):
+        record = SeqIO.read(filename, "genbank")
+    elif filename.lower().endswith(('fa', 'fasta')):
+        record = SeqIO.read(filename, "fasta")
+    else:
+        raise ValueError('Unknown format for file: %s' % filename)
+    if name != "unnamed":
+        record.id = name
+        record.name = name.replace(" ", "_")[:20]
+    return record

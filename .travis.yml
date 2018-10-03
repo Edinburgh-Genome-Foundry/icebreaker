@@ -1,0 +1,20 @@
+sudo: required
+
+services:
+  - docker
+
+install:
+  - pip install coveralls pytest-cov pytest
+  - pip install -e .
+
+before_script:
+  - cd ./tests/docker/
+  - docker-compose up -d
+  - docker exec -i docker_postgres_1 pg_restore --dbname=ice --username=iceuser --verbose --clean < backups/initial_state.dmp
+  - cd ../../
+
+script:
+  - python -m pytest -v --cov icebreaker --cov-report term-missing
+  
+after_success:
+  - coveralls

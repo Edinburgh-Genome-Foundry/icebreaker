@@ -35,7 +35,7 @@ for primer in set(sum(selected_primers, [])):
     ice_id = primer.metadata.get("ice_id", None)
     primer.metadata["location"] = None
     if ice_id is not None:
-        samples = ice.get_part_samples(ice_id)
+        samples = ice.get_samples(ice_id)
         location = ", ".join([sample_location_string(s) for s in samples])
         primer.metadata["location"] = location or "unknown"
 

@@ -1,0 +1,25 @@
+LOCUS       Exported                 150 bp ds-DNA     linear   SYN 03-OCT-2018
+DEFINITION  example_record.
+ACCESSION   .
+VERSION     .
+KEYWORDS    .
+SOURCE      synthetic DNA construct
+  ORGANISM  synthetic DNA construct
+REFERENCE   1  (bases 1 to 150)
+  AUTHORS   .
+  TITLE     Direct Submission
+  JOURNAL   Exported Oct 3, 2018 from SnapGene Viewer 4.1.9
+            http://www.snapgene.com
+FEATURES             Location/Qualifiers
+     source          1..150
+                     /organism="synthetic DNA construct"
+                     /mol_type="other DNA"
+     misc_feature    34..63
+                     /label=Feature 1
+     misc_feature    78..126
+                     /label=Feature 2
+ORIGIN
+        1 aaattgtgtg cgtgtgtgca aattgtgtgc gtgtgtgcaa attgtgtgcg tgtgtgcaaa
+       61 ttgtgtgcgt gtgtgcaaat tgtgtgcgtg tgtgcaaatt gtgtgcgtgt gtgcaaattg
+      121 tgtgcgtgtg tgcatgcgtg catgtgtgat
+//

@@ -15,4 +15,5 @@ setup(
     keywords="synthetic biology sample manager",
     packages=find_packages(exclude='docs'),
     include_package_data=True,
-    install_requires=["requests", "fuzzywuzzy", "proglog"])
+    install_requires=["requests", "fuzzywuzzy", "proglog", "biopython",
+                      "pandas"])
