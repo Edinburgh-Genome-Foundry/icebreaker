@@ -13,7 +13,9 @@ install:
 
 before_script:
   - cd ./tests/docker/
+  - docker-compose build
   - docker-compose up -d
+  - sleep 10s
   - sh ./restore_initial_state.sh
   - docker-compose restart
   - cd ../../
