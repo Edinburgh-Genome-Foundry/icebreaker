@@ -230,7 +230,7 @@ ICE, (2) find which primers are adapted to our sequence, using the
 <span class="k">for</span> <span class="n">primer</span> <span class="ow">in</span> <span class="n">selected_primers</span><span class="p">:</span>
     <span class="n">ice_id</span> <span class="o">=</span> <span class="n">primer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ice_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">ice_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">samples</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_part_samples</span><span class="p">(</span><span class="n">ice_id</span><span class="p">)</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">ice</span><span class="o">.</span><span class="n">get_samples</span><span class="p">(</span><span class="n">ice_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">location</span> <span class="o">=</span> <span class="n">icebreaker</span><span class="o">.</span><span class="n">sample_location_string</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Primer </span><span class="si">%s</span><span class="s2"> is in </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">primer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">))</span>
@@ -251,14 +251,33 @@ ICE, (2) find which primers are adapted to our sequence, using the
 <h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="icebreaker.IceClient">
-<em class="property">class </em><code class="descclassname">icebreaker.</code><code class="descname">IceClient</code><span class="sig-paren">(</span><em>root</em>, <em>api_token</em>, <em>api_token_client</em>, <em>cache='memory'</em>, <em>logger='bar'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">icebreaker.</code><code class="descname">IceClient</code><span class="sig-paren">(</span><em>config</em>, <em>cache=None</em>, <em>logger='bar'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Session to easily interact with an ICE instance.</p>
 <p class="rubric">Methods</p>
 <dl class="method">
+<dt id="icebreaker.IceClient.set_api_token">
+<code class="descname">set_api_token</code><span class="sig-paren">(</span><em>client</em>, <em>token</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.set_api_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.set_api_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a new API token (and erase any previous token / session ID)</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ice_client</span><span class="o">.</span><span class="n">set_api_token</span><span class="p">(</span><span class="s1">&#39;icebot&#39;</span><span class="p">,</span> <span class="s1">&#39;werouh4E4boubSFSDF=&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_new_session_id">
+<code class="descname">get_new_session_id</code><span class="sig-paren">(</span><em>email</em>, <em>password</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_new_session_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_new_session_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Authenticate and receive a new session ID.</p>
+<p>This is automatically called in IceClient if the config contains an
+email and password.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="icebreaker.IceClient.request">
-<code class="descname">request</code><span class="sig-paren">(</span><em>method</em>, <em>endpoint</em>, <em>params=None</em>, <em>data=None</em>, <em>response_type='json'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.request" title="Permalink to this definition">¶</a></dt>
+<code class="descname">request</code><span class="sig-paren">(</span><em>method</em>, <em>endpoint</em>, <em>params=None</em>, <em>data=None</em>, <em>files=None</em>, <em>response_type='json'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.request" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a request to the ICE server.</p>
-<p>This is a generic method used by all the subsequence <a href="#id1"><span class="problematic" id="id2">get_</span></a> methods.</p>
+<p>This is a generic method used by all the subsequent methods, and wraps
+the <code class="docutils literal"><span class="pre">requests.request</span></code> method</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -273,11 +292,18 @@ ICE, (2) find which primers are adapted to our sequence, using the
 </div></blockquote>
 <p><strong>params</strong></p>
 <blockquote>
-<div><p>Parameters to add to the url.</p>
+<div><p>Parameters to add to the url, as a dict (the ones after “?=”)</p>
 </div></blockquote>
 <p><strong>data</strong></p>
 <blockquote>
 <div><p>Json data to add to the request</p>
+</div></blockquote>
+<p><strong>files</strong></p>
+<blockquote>
+<div><p>A dict of the form <code class="docutils literal"><span class="pre">{fileId:</span> <span class="pre">(filename,</span> <span class="pre">content,</span> <span class="pre">mimetype)}</span></code>
+where fileId is the variable name expected by the ICE API,
+content is a string or bytes, mymetype a string like
+<a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
 </div></blockquote>
 <p><strong>response_type</strong></p>
 <blockquote class="last">
@@ -299,19 +325,19 @@ you are expecting a file.</p>
 <dl class="method">
 <dt id="icebreaker.IceClient.get_part_samples">
 <code class="descname">get_part_samples</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_samples" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of samples (dicts) for the part with that id.</p>
+<dd><p>Return a list of samples (dicts) for the entity with that id.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="icebreaker.IceClient.get_part_sequence">
-<code class="descname">get_part_sequence</code><span class="sig-paren">(</span><em>id</em>, <em>format='genbank'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_sequence" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return genbank text for the part with that id.</p>
+<dt id="icebreaker.IceClient.get_sequence">
+<code class="descname">get_sequence</code><span class="sig-paren">(</span><em>id</em>, <em>format='genbank'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return genbank text for the entity with that id.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="icebreaker.IceClient.get_part_record">
-<code class="descname">get_part_record</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_record" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a biopython record for the part with that id.</p>
+<dt id="icebreaker.IceClient.get_record">
+<code class="descname">get_record</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a biopython record for the entity with that id.</p>
 </dd></dl>
 
 <dl class="method">
@@ -321,34 +347,46 @@ you are expecting a file.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="icebreaker.IceClient.get_part_id">
-<code class="descname">get_part_id</code><span class="sig-paren">(</span><em>name</em>, <em>folder_id=None</em>, <em>collection=None</em>, <em>use_filter=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the id of a part, given a name.</p>
-<p>This method works by pulling all data from selected folders and looking
-for the part’s name. Therefore it can be very long for big folders.</p>
+<dt id="icebreaker.IceClient.get_folder_infos">
+<code class="descname">get_folder_infos</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_infos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_infos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return infos (dict) on the folder whose id is provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.search">
+<code class="descname">search</code><span class="sig-paren">(</span><em>query</em>, <em>limit=None</em>, <em>batch_size=50</em>, <em>as_iterator=False</em>, <em>min_score=0</em>, <em>entry_types=()</em>, <em>sort_field='RELEVANCE'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an iterator or list over text search results.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong></p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>query</strong></p>
 <blockquote>
-<div><p>Name of the part to be IDed</p>
+<div><p>Text to query</p>
 </div></blockquote>
-<p><strong>folder_id</strong></p>
+<p><strong>limit</strong></p>
 <blockquote>
-<div><p>Folder ID (or list of) where to find the part.</p>
+<div><p>limit on the number of entries to fetch</p>
 </div></blockquote>
-<p><strong>collection</strong></p>
+<p><strong>batch_size</strong></p>
 <blockquote>
-<div><p>Collection where to find the part. Can be provided instead of
-folder_id.</p>
+<div><p>How many entries to get at the same time at each connexion with ICE
+ideal may be 50</p>
 </div></blockquote>
-<p><strong>use_filter</strong></p>
+<p><strong>as_iterator</strong></p>
+<blockquote>
+<div><p>If True an iterator is returned, if False a list is returned.</p>
+</div></blockquote>
+<p><strong>min_score</strong></p>
+<blockquote>
+<div><p>Minimal score accepted. The search will be stopped at the first
+occurence of a score below that limit if sort_field is “RELEVANCE”.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">entries_iterator</p>
 <blockquote class="last">
-<div><p>If true, the ICE request will use filtering. This if faster for a
-one-off ID search but if you use caching and do many part IDing you
-will be better off without the filtering (your first search will be
-very long but next searches will be instantaneous)</p>
+<div><p>An iterator over the successive entries found by the search.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -357,20 +395,58 @@ very long but next searches will be instantaneous)</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="icebreaker.IceClient.search">
-<code class="descname">search</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Not yet implemented. Ask for it !</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="icebreaker.IceClient.get_folder_infos">
-<code class="descname">get_folder_infos</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_infos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_infos" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return infos (dict) on the folder whose id is provided.</p>
+<dt id="icebreaker.IceClient.find_entry_by_name">
+<code class="descname">find_entry_by_name</code><span class="sig-paren">(</span><em>name</em>, <em>limit=10</em>, <em>min_score=0</em>, <em>entry_types=('PART'</em>, <em>'PLASMID')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.find_entry_by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.find_entry_by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find an entry (id and other infos) via a name search.</p>
+<p>Note that because of possible weirdness in ICE searches, it is not
+guaranteed to work.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong></p>
+<blockquote>
+<div><p>Name of the entry to retrieve</p>
+</div></blockquote>
+<p><strong>limit</strong></p>
+<blockquote>
+<div><p>Limitation on the number of entries to consider in the search.
+Ideally, get just 1 result (top result) would be sufficient, but
+you never know, some parts with slightly different names could
+rank higher.</p>
+</div></blockquote>
+<p><strong>entry_types</strong></p>
+<blockquote>
+<div><p>List of acceptable entry types. The less there is, the faster the
+search.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">entry_info, None</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>In case of success. <code class="docutils literal"><span class="pre">entry_info</span></code> is a dict with part ID, owner,
+etc.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>None, (“Multiple matches”, [entries_ids…])</dt>
+<dd><p class="first last">In case several ICE entries have that exact name</p>
+</dd>
+<dt>None, (“No match”, [“suggestion1”, “suggestion2” …])</dt>
+<dd><p class="first last">Where the suggestions are entry names in ICE very similar to the
+required name.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="icebreaker.IceClient.get_folder_entries">
-<code class="descname">get_folder_entries</code><span class="sig-paren">(</span><em>folder_id</em>, <em>must_contain=None</em>, <em>as_iterator=False</em>, <em>limit=None</em>, <em>batch_size=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_entries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_entries" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_folder_entries</code><span class="sig-paren">(</span><em>folder_id</em>, <em>must_contain=None</em>, <em>as_iterator=False</em>, <em>limit=None</em>, <em>batch_size=15</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_folder_entries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_folder_entries" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list or iterator of all entries in a given ICE folder.</p>
 <p>Each entry is represented by a dictionnary giving its name, creation
 date, and other infos.</p>
@@ -412,6 +488,223 @@ folders with many parts)</p>
 <dd><p>Return a list of folders in a given collection.</p>
 <p>Collection must be one of:
 FEATURED PERSONAL SHARED DRAFTS PENDING DELETED</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.change_user_password">
+<code class="descname">change_user_password</code><span class="sig-paren">(</span><em>new_password</em>, <em>user_id='session_user'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.change_user_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.change_user_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the password of a user (current session user by default)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_permissions">
+<code class="descname">get_part_permissions</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_permissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_permissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of all permissions attached to a part</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.delete_part_permission">
+<code class="descname">delete_part_permission</code><span class="sig-paren">(</span><em>part_id</em>, <em>permission_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.delete_part_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.delete_part_permission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a permission for a given part.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_session_user_id">
+<code class="descname">get_session_user_id</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_session_user_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_session_user_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the ICE id of the user of the current session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.restrict_part_to_user">
+<code class="descname">restrict_part_to_user</code><span class="sig-paren">(</span><em>part_id</em>, <em>user_id='current_user'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.restrict_part_to_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.restrict_part_to_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all permissions that are not from the given user.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.create_part">
+<code class="descname">create_part</code><span class="sig-paren">(</span><em>name</em>, <em>description='A part.'</em>, <em>pi='unknown'</em>, <em>parameters=()</em>, <em>**attributes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.create_part"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.create_part" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new part.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong></p>
+<blockquote class="last">
+<div><p>Name of the new part</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.create_folder">
+<code class="descname">create_folder</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.create_folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.create_folder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a folder with the given name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.create_folder_permission">
+<code class="descname">create_folder_permission</code><span class="sig-paren">(</span><em>folder_id</em>, <em>group_id=None</em>, <em>user_id=None</em>, <em>can_write=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.create_folder_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.create_folder_permission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new permission for the given folder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>folder_id</strong></p>
+<blockquote>
+<div><p>ID of the folder getting the permission</p>
+</div></blockquote>
+<p><strong>user_id, group_id</strong></p>
+<blockquote>
+<div><p>Provide either one to identify who gets the permission</p>
+</div></blockquote>
+<p><strong>can_write</strong></p>
+<blockquote class="last">
+<div><p>Allows users to both add files to the folder and overwrite data
+from files in the folder (!! use with care).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.delete_folder_permission">
+<code class="descname">delete_folder_permission</code><span class="sig-paren">(</span><em>folder_id</em>, <em>permission_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.delete_folder_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.delete_folder_permission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a permission attached to a given folder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.add_to_folder">
+<code class="descname">add_to_folder</code><span class="sig-paren">(</span><em>entries_ids=()</em>, <em>folders=()</em>, <em>folders_ids=()</em>, <em>remote_entries=()</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.add_to_folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.add_to_folder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a list of entries to a list of folders.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>entries_ids</strong></p>
+<blockquote>
+<div><p>List of entry IDS</p>
+</div></blockquote>
+<p><strong>folders</strong></p>
+<blockquote>
+<div><p>List of full folder infos. (NOT folder ids). I guess this is to allow
+folders on remote ICE instances. Confusing, but you can use
+<code class="docutils literal"><span class="pre">folders_ids</span></code> instead.</p>
+</div></blockquote>
+<p><strong>folder_ids</strong></p>
+<blockquote class="last">
+<div><p>List of folder IDs that can be provided instead of the <code class="docutils literal"><span class="pre">folders</span></code>
+infos list.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.remove_from_folder">
+<code class="descname">remove_from_folder</code><span class="sig-paren">(</span><em>entries_ids</em>, <em>folder_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.remove_from_folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.remove_from_folder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dissociate a list of entries from a folder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.attach_record_to_part">
+<code class="descname">attach_record_to_part</code><span class="sig-paren">(</span><em>ice_record_id=None</em>, <em>ice_part_id=None</em>, <em>record=None</em>, <em>record_text=None</em>, <em>filename='auto'</em>, <em>record_format='genbank'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.attach_record_to_part"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.attach_record_to_part" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attach a BioPython record or raw text record to a part</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ice_record_id</strong></p>
+<blockquote>
+<div><p>A uuid (like aw3de45-sfjn389-lng563d…) that identifies the record
+attachment of the part in ICE. It is generally the field “recordId”
+when you retrieve a part’s infos in ICE. If you have no clue, leave
+this to None and provide a <code class="docutils literal"><span class="pre">ice_part_id</span></code> instead.</p>
+</div></blockquote>
+<p><strong>ice_part_id</strong></p>
+<blockquote>
+<div><p>The id of an ICE entry that can be provided instead of the
+<code class="docutils literal"><span class="pre">ice_record_id</span></code>.</p>
+</div></blockquote>
+<p><strong>record</strong></p>
+<blockquote>
+<div><p>A Biopython record</p>
+</div></blockquote>
+<p><strong>record_text</strong></p>
+<blockquote>
+<div><p>Raw text from a FASTA/Genbank record.</p>
+</div></blockquote>
+<p><strong>filename</strong></p>
+<blockquote>
+<div><p>If set to “auto”, will be “record_id.gb” for genbank format.</p>
+</div></blockquote>
+<p><strong>record_format</strong></p>
+<blockquote class="last">
+<div><p>When providing a fasta format in record_text, set this to “fasta”.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.delete_part_record">
+<code class="descname">delete_part_record</code><span class="sig-paren">(</span><em>part_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.delete_part_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.delete_part_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the record attached to a part.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_user_groups">
+<code class="descname">get_user_groups</code><span class="sig-paren">(</span><em>user_id='session_id'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_user_groups"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_user_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>List all groups a user (this user by default) is part of.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.trash_parts">
+<code class="descname">trash_parts</code><span class="sig-paren">(</span><em>part_ids</em>, <em>visible='OK'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.trash_parts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.trash_parts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place the list of IDed parts in the trash.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.find_parts_by_custom_field_value">
+<code class="descname">find_parts_by_custom_field_value</code><span class="sig-paren">(</span><em>parameter</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.find_parts_by_custom_field_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.find_parts_by_custom_field_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find all parts whose (extra) field “parameter” is set to “value”</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_collections_list">
+<code class="descname">get_collections_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_collections_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_collections_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list [‘FEATURED’, ‘SHARED’, etc.]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.rebuild_search_indexes">
+<code class="descname">rebuild_search_indexes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.rebuild_search_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.rebuild_search_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rebuild the search indexes.</p>
+<p>An OK response does not mean that it is finished, just that the
+rebuild was scheduled.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_custom_fields_list">
+<code class="descname">get_part_custom_fields_list</code><span class="sig-paren">(</span><em>part_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_custom_fields_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_custom_fields_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all custom fields for a given part.</p>
+<p>Returns a list of the form <code class="docutils literal"><span class="pre">[{name:</span> <span class="pre">'field1',</span> <span class="pre">value:</span> <span class="pre">321},</span> <span class="pre">...]</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_part_custom_field">
+<code class="descname">get_part_custom_field</code><span class="sig-paren">(</span><em>part_id</em>, <em>field_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_part_custom_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_part_custom_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the value for a part’s custom field.</p>
+<p>The value will be a list if the part has several values attached to
+that field name.</p>
 </dd></dl>
 
 </dd></dl>

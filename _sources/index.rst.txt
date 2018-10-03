@@ -90,7 +90,7 @@ Finally we look for available samples for each primer:
     for primer in selected_primers:
         ice_id = primer.metadata.get("ice_id", None)
         if ice_id is not None:
-            samples = ice.get_part_samples(ice_id)
+            samples = ice.get_samples(ice_id)
             if len(samples) > 0:
                 location = icebreaker.sample_location_string(samples[0])
                 print("Primer %s is in %s." % (primer.name, location))

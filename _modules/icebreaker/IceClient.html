@@ -154,35 +154,44 @@
             
   <h1>Source code for icebreaker.IceClient</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
 
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">requests_cache</span>
 <span class="kn">import</span> <span class="nn">proglog</span>
+
+<span class="kn">from</span> <span class="nn">Bio</span> <span class="k">import</span> <span class="n">SeqIO</span>
+
 
 <span class="kn">from</span> <span class="nn">.tools</span> <span class="k">import</span> <span class="n">did_you_mean</span><span class="p">,</span> <span class="n">ice_genbank_to_record</span>
 
 <div class="viewcode-block" id="IceClient"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient">[docs]</a><span class="k">class</span> <span class="nc">IceClient</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Session to easily interact with an ICE instance.&quot;&quot;&quot;</span>
     
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">api_token</span><span class="p">,</span> <span class="n">api_token_client</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="s1">&#39;memory&#39;</span><span class="p">,</span>
-                 <span class="n">logger</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initializes an instance and a connection to an ICE instance.</span>
 <span class="sd">        </span>
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 
-<span class="sd">        &gt;&gt;&gt; ice = icebreaker.IceClient(root=&quot;https://ice.genomefoundry.org&quot;,</span>
-<span class="sd">        &gt;&gt;&gt;                            api_token=&quot;WHz+BC+7eFV=...&quot;,</span>
-<span class="sd">        &gt;&gt;&gt;                            api_token_client = &quot;icebot&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; config = dict(root=&quot;https://ice.genomefoundry.org&quot;,</span>
+<span class="sd">        &gt;&gt;&gt;               token=&quot;WHz+BC+7eFV=...&quot;,</span>
+<span class="sd">        &gt;&gt;&gt;               client=&quot;icebot&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; ice = icebreaker.IceClient(config)</span>
+<span class="sd">        &gt;&gt;&gt; # Alternative config via a yaml file:</span>
+<span class="sd">        &gt;&gt;&gt; ice = icebreaker.IceClient(config=&quot;config.yaml&quot;)</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 
-<span class="sd">        root</span>
-<span class="sd">          Web address of the ICE instance, e.g. `https:/ice.genomefoundry.org`</span>
-<span class="sd">        </span>
-<span class="sd">        api_token, api_token_client</span>
-<span class="sd">          Valid ICE API token and associated client ID. See documentation if</span>
-<span class="sd">          you are unsure how to get one.</span>
+<span class="sd">        config</span>
+<span class="sd">          Authentication configuration of the ICE instance. Should be either</span>
+<span class="sd">          a dictionnary or a yaml file representing a dictionnary</span>
+<span class="sd">          (cf. documentation). The dictionnary should be of the form</span>
+<span class="sd">          ``{root: email: password:}`` where root is the root address of your</span>
+<span class="sd">          online ICE instance, or ``{root: token: client:}`` to authenticate</span>
+<span class="sd">          with a client name and API token (a.k.a API key).</span>
 <span class="sd">        </span>
 <span class="sd">        cache</span>
 <span class="sd">          Option to cache the ICE requests, which will greatly improve the</span>
@@ -197,28 +206,66 @@
 <span class="sd">          Either None for no logging, &#39;bar&#39; for progress bar logging (useful</span>
 <span class="sd">          in notebooks), or a custom Proglog logging object.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">load_all</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;root&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">proglog</span><span class="o">.</span><span class="n">default_bar_logger</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">ignore_bars_under</span> <span class="o">=</span> <span class="mi">2</span>
         <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests_cache</span><span class="o">.</span><span class="n">CachedSession</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">cache</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span>
-            <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span>
-            <span class="s2">&quot;X-ICE-API-Token-Client&quot;</span><span class="p">:</span> <span class="n">api_token_client</span><span class="p">,</span>
-            <span class="s2">&quot;X-ICE-API-Token&quot;</span><span class="p">:</span> <span class="n">api_token</span><span class="p">,</span> 
-        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s2">&quot;session_id&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-ICE-Authentication-SessionId&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_infos&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+        <span class="k">if</span> <span class="s2">&quot;client&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_api_token</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;client&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="s2">&quot;password&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_new_session_id</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">])</span>
     
     <span class="k">def</span> <span class="nf">_endpoint_to_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Complete endpoint by adding domain name.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">+</span> <span class="s1">&#39;/rest/&#39;</span> <span class="o">+</span> <span class="n">endpoint</span>
     
+<div class="viewcode-block" id="IceClient.set_api_token"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.set_api_token">[docs]</a>    <span class="k">def</span> <span class="nf">set_api_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a new API token (and erase any previous token / session ID)</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; ice_client.set_api_token(&#39;icebot&#39;, &#39;werouh4E4boubSFSDF=&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s2">&quot;X-ICE-API-Token-Client&quot;</span><span class="p">:</span> <span class="n">client</span><span class="p">,</span>
+            <span class="s2">&quot;X-ICE-API-Token&quot;</span><span class="p">:</span> <span class="n">token</span> 
+        <span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;X-ICE-Authentication-SessionId&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;api_token&#39;</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span> <span class="s1">&#39;api_client&#39;</span><span class="p">:</span> <span class="n">client</span><span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="IceClient.get_new_session_id"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_new_session_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_new_session_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Authenticate and receive a new session ID.</span>
+
+<span class="sd">        This is automatically called in IceClient if the config contains an</span>
+<span class="sd">        email and password.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="s1">&#39;accesstokens&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;sessionId&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-ICE-Authentication-SessionId&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;X-ICE-API-Token-Client&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;X-ICE-API-Token&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span> <span class="o">=</span> <span class="n">response</span></div>
+
 <div class="viewcode-block" id="IceClient.request"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
+                <span class="n">files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make a request to the ICE server.</span>
 
-<span class="sd">        This is a generic method used by all the subsequence get_ methods.</span>
+<span class="sd">        This is a generic method used by all the subsequent methods, and wraps</span>
+<span class="sd">        the ``requests.request`` method</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -237,10 +284,17 @@
 <span class="sd">          Part of the address after &quot;http/.../rest/&quot;.</span>
 <span class="sd">        </span>
 <span class="sd">        params</span>
-<span class="sd">          Parameters to add to the url.</span>
+<span class="sd">          Parameters to add to the url, as a dict (the ones after &quot;?=&quot;)</span>
 <span class="sd">        </span>
 <span class="sd">        data</span>
 <span class="sd">          Json data to add to the request</span>
+<span class="sd">        </span>
+<span class="sd">        files</span>
+<span class="sd">          A dict of the form ``{fileId: (filename, content, mimetype)}``</span>
+<span class="sd">          where fileId is the variable name expected by the ICE API,</span>
+<span class="sd">          content is a string or bytes, mymetype a string like</span>
+<span class="sd">          ````</span>
+
 <span class="sd">        </span>
 <span class="sd">        response_type</span>
 <span class="sd">          Use &quot;json&quot; if you expect JSON to be returned, or &quot;file&quot; if</span>
@@ -249,12 +303,28 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         
         <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_endpoint_to_url</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+              <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span>
+              <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s1">&#39;application/json;charset=UTF-8&#39;</span> 
+            <span class="p">}</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+                                            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+                                            <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                                             <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s1">&#39;file&#39;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+            <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s1">&#39;raw&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span>
+            <span class="k">return</span> <span class="n">response</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
                 <span class="s2">&quot;ICE request failed with code </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">):</span><span class="se">\n</span><span class="s2"> &quot;</span>
@@ -266,71 +336,26 @@
     <span class="c1"># PARTS</span>
     
 <div class="viewcode-block" id="IceClient.get_part_samples"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_samples">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a list of samples (dicts) for the part with that id.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of samples (dicts) for the entity with that id.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;parts/</span><span class="si">%s</span><span class="s1">/samples&#39;</span> <span class="o">%</span> <span class="nb">id</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="IceClient.get_part_sequence"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_sequence">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return genbank text for the part with that id.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="IceClient.get_sequence"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_sequence">[docs]</a>    <span class="k">def</span> <span class="nf">get_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return genbank text for the entity with that id.&quot;&quot;&quot;</span>
         <span class="n">endpoint</span> <span class="o">=</span> <span class="s2">&quot;file/</span><span class="si">%s</span><span class="s2">/sequence/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span><span class="p">)</span></div>
         
-<div class="viewcode-block" id="IceClient.get_part_record"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_record">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a biopython record for the part with that id.&quot;&quot;&quot;</span>
-        <span class="n">genbank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_part_sequence</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="IceClient.get_record"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_record">[docs]</a>    <span class="k">def</span> <span class="nf">get_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a biopython record for the entity with that id.&quot;&quot;&quot;</span>
+        <span class="n">genbank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sequence</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ice_genbank_to_record</span><span class="p">(</span><span class="n">genbank</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="IceClient.get_part_infos"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_infos">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_infos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return infos (name, creation date...) for the part with that id.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;parts/&#39;</span> <span class="o">+</span> <span class="nb">id</span><span class="p">)</span></div>
-    
-<div class="viewcode-block" id="IceClient.get_part_id"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">folder_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">collection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">use_filter</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Find the id of a part, given a name.</span>
-
-<span class="sd">        This method works by pulling all data from selected folders and looking</span>
-<span class="sd">        for the part&#39;s name. Therefore it can be very long for big folders.</span>
-<span class="sd">        </span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        -----------</span>
-<span class="sd">        </span>
-<span class="sd">        name</span>
-<span class="sd">          Name of the part to be IDed</span>
-
-<span class="sd">        folder_id</span>
-<span class="sd">          Folder ID (or list of) where to find the part.</span>
-<span class="sd">          </span>
-<span class="sd">        collection</span>
-<span class="sd">          Collection where to find the part. Can be provided instead of</span>
-<span class="sd">          folder_id.        </span>
-<span class="sd">        </span>
-<span class="sd">        use_filter</span>
-<span class="sd">          If true, the ICE request will use filtering. This if faster for a</span>
-<span class="sd">          one-off ID search but if you use caching and do many part IDing you</span>
-<span class="sd">          will be better off without the filtering (your first search will be</span>
-<span class="sd">          very long but next searches will be instantaneous)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">collection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">folder_id</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span>
-                <span class="n">f</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_collection_folders</span><span class="p">(</span><span class="n">collection</span><span class="p">)]))</span>
-        
-        <span class="n">parts_names_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_folder_parts_names_to_ids</span><span class="p">(</span>
-            <span class="n">folder_id</span><span class="p">,</span> <span class="n">must_contain</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">use_filter</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parts_names_ids</span><span class="p">:</span>
-            <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;No part named </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">name</span>
-            <span class="n">suggestions</span> <span class="o">=</span> <span class="n">did_you_mean</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parts_names_ids</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">suggestions</span><span class="p">):</span>
-                <span class="n">error</span> <span class="o">+=</span> <span class="s2">&quot; Suggestions: </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
-        <span class="nb">id</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">parts_names_ids</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Found several folders named </span><span class="si">%s</span><span class="s2">, with IDs </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span>
-                          <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">id</span><span class="p">])))</span>
-        <span class="k">return</span> <span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;parts/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">id</span><span class="p">)</span></div>
     
     <span class="k">def</span> <span class="nf">_folder_parts_names_to_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_ids</span><span class="p">,</span> <span class="n">must_contain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">parts_names_ids</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">folder_ids</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">folder_ids</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="n">folder_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">folder_ids</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">folder_id</span> <span class="ow">in</span> <span class="n">folder_ids</span><span class="p">:</span>
             <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_folder_entries</span><span class="p">(</span><span class="n">folder_id</span><span class="o">=</span><span class="n">folder_id</span><span class="p">,</span>
@@ -341,10 +366,6 @@
                     <span class="n">parts_names_ids</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">parts_names_ids</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">parts_names_ids</span>
-    
-<div class="viewcode-block" id="IceClient.search"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="s2">&quot;Not yet implemented. Ask for it !&quot;</span>
-        <span class="k">pass</span></div>
     
     <span class="c1"># FOLDERS</span>
     
@@ -376,8 +397,122 @@
             <span class="n">folders_names_ids</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">folder</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">folders_names_ids</span>
     
+<div class="viewcode-block" id="IceClient.search"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">as_iterator</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">min_score</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">entry_types</span><span class="o">=</span><span class="p">(),</span>
+               <span class="n">sort_field</span><span class="o">=</span><span class="s2">&quot;RELEVANCE&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterator or list over text search results.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        query</span>
+<span class="sd">          Text to query</span>
+<span class="sd">        </span>
+<span class="sd">        limit</span>
+<span class="sd">          limit on the number of entries to fetch</span>
+<span class="sd">        </span>
+<span class="sd">        batch_size</span>
+<span class="sd">          How many entries to get at the same time at each connexion with ICE</span>
+<span class="sd">          ideal may be 50</span>
+<span class="sd">        </span>
+<span class="sd">        as_iterator</span>
+<span class="sd">          If True an iterator is returned, if False a list is returned.</span>
+<span class="sd">        </span>
+<span class="sd">        min_score</span>
+<span class="sd">          Minimal score accepted. The search will be stopped at the first</span>
+<span class="sd">          occurence of a score below that limit if sort_field is &quot;RELEVANCE&quot;.</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        entries_iterator</span>
+<span class="sd">          An iterator over the successive entries found by the search.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="n">offset</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">retrieve_count</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">limit</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">retrieve_count</span> <span class="o">=</span> <span class="n">batch_size</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">entryTypes</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">entry_types</span><span class="p">),</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                                <span class="n">retrieveCount</span><span class="o">=</span> <span class="n">retrieve_count</span><span class="p">,</span>
+                                <span class="n">sortField</span><span class="o">=</span><span class="n">sort_field</span><span class="p">),</span>
+                <span class="n">blastQuery</span><span class="o">=</span><span class="p">{},</span> <span class="n">queryString</span><span class="o">=</span><span class="n">query</span><span class="p">,</span><span class="n">webSearch</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;search&quot;</span><span class="p">,</span>
+                                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="s2">&quot;resultCount&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">generator</span><span class="p">():</span>
+            <span class="n">offsets</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">iter_bar</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="n">offsets</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">min_score</span><span class="p">:</span>
+                        <span class="k">return</span>
+                    <span class="k">yield</span> <span class="n">entry</span><span class="p">[</span><span class="s1">&#39;entryInfo&#39;</span><span class="p">]</span>
+                
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">generator</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">as_iterator</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">entry</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">limit</span><span class="p">),</span> <span class="n">iterator</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">iterator</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">entry</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">limit</span><span class="p">),</span> <span class="n">iterator</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.find_entry_by_name"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.find_entry_by_name">[docs]</a>    <span class="k">def</span> <span class="nf">find_entry_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                             <span class="n">entry_types</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;PART&#39;</span><span class="p">,</span> <span class="s1">&#39;PLASMID&#39;</span><span class="p">)):</span>
+        <span class="sd">&quot;&quot;&quot;Find an entry (id and other infos) via a name search.</span>
+<span class="sd">        </span>
+<span class="sd">        Note that because of possible weirdness in ICE searches, it is not</span>
+<span class="sd">        guaranteed to work.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name</span>
+<span class="sd">          Name of the entry to retrieve</span>
+
+<span class="sd">        limit</span>
+<span class="sd">          Limitation on the number of entries to consider in the search.</span>
+<span class="sd">          Ideally, get just 1 result (top result) would be sufficient, but</span>
+<span class="sd">          you never know, some parts with slightly different names could</span>
+<span class="sd">          rank higher.</span>
+<span class="sd">        </span>
+<span class="sd">        entry_types</span>
+<span class="sd">          List of acceptable entry types. The less there is, the faster the</span>
+<span class="sd">          search.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">          entry_info, None</span>
+<span class="sd">            In case of success. ``entry_info`` is a dict with part ID, owner,</span>
+<span class="sd">            etc.</span>
+<span class="sd">        </span>
+<span class="sd">          None, (&quot;Multiple matches&quot;, [entries_ids...])</span>
+<span class="sd">            In case several ICE entries have that exact name</span>
+<span class="sd">        </span>
+<span class="sd">          None, (&quot;No match&quot;, [&quot;suggestion1&quot;, &quot;suggestion2&quot; ...])</span>
+<span class="sd">            Where the suggestions are entry names in ICE very similar to the</span>
+<span class="sd">            required name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="n">min_score</span><span class="p">,</span>
+                              <span class="n">entry_types</span><span class="o">=</span><span class="n">entry_types</span><span class="p">)</span>
+        <span class="n">good_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">good_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Multiple matches&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">r</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">good_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">suggestions</span> <span class="o">=</span> <span class="n">did_you_mean</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">],</span> <span class="n">min_score</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No match&#39;</span><span class="p">,</span> <span class="n">suggestions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">good_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span></div>
+    
 <div class="viewcode-block" id="IceClient.get_folder_entries"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_folder_entries">[docs]</a>    <span class="k">def</span> <span class="nf">get_folder_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_id</span><span class="p">,</span> <span class="n">must_contain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                           <span class="n">as_iterator</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+                           <span class="n">as_iterator</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a list or iterator of all entries in a given ICE folder.</span>
 
 <span class="sd">        Each entry is represented by a dictionnary giving its name, creation</span>
@@ -441,15 +576,321 @@
             <span class="p">],</span> <span class="p">[])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;collections/</span><span class="si">%s</span><span class="s2">/folders&quot;</span> <span class="o">%</span> <span class="n">collection</span><span class="p">)</span></div>
     
-    <span class="k">def</span> <span class="nf">get_collection_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collection</span><span class="p">,</span> <span class="n">ignored_folders</span><span class="o">=</span><span class="p">()):</span>
+
+
+<div class="viewcode-block" id="IceClient.change_user_password"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.change_user_password">[docs]</a>    <span class="k">def</span> <span class="nf">change_user_password</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_password</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s1">&#39;session_user&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change the password of a user (current session user by default)&quot;&quot;&quot;</span>
+        <span class="k">if</span>  <span class="n">user_id</span> <span class="o">==</span> <span class="s1">&#39;session_user&#39;</span><span class="p">:</span>
+            <span class="n">user_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session_user_id</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;PUT&quot;</span><span class="p">,</span> <span class="s2">&quot;users/</span><span class="si">%s</span><span class="s2">/password&quot;</span> <span class="o">%</span> <span class="n">user_id</span><span class="p">,</span>
+                            <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">new_password</span><span class="p">})</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_part_permissions"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_permissions">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_permissions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a list of all permissions attached to a part&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/permissions&quot;</span> <span class="o">%</span> <span class="nb">id</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.delete_part_permission"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.delete_part_permission">[docs]</a>    <span class="k">def</span> <span class="nf">delete_part_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">permission_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete a permission for a given part.&quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/permissions/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">part_id</span><span class="p">,</span> <span class="n">permission_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_session_user_id"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_session_user_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_session_user_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the ICE id of the user of the current session.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_session_user_id only works&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="IceClient.restrict_part_to_user"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.restrict_part_to_user">[docs]</a>    <span class="k">def</span> <span class="nf">restrict_part_to_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s1">&#39;current_user&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove all permissions that are not from the given user.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">user_id</span> <span class="o">==</span> <span class="s1">&#39;current_user&#39;</span><span class="p">:</span>
+            <span class="n">user_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session_user_id</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">permission</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_part_permissions</span><span class="p">(</span><span class="n">part_id</span><span class="p">):</span>
+            <span class="n">is_group</span> <span class="o">=</span> <span class="s1">&#39;account&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">permission</span>
+            <span class="k">if</span> <span class="n">is_group</span> <span class="ow">or</span> <span class="p">(</span><span class="n">permission</span><span class="p">[</span><span class="s1">&#39;account&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">user_id</span><span class="p">):</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">delete_part_permission</span><span class="p">(</span><span class="n">part_id</span><span class="p">,</span> <span class="n">permission</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span></div>
+    
+<div class="viewcode-block" id="IceClient.create_part"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.create_part">[docs]</a>    <span class="k">def</span> <span class="nf">create_part</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A part.&quot;</span><span class="p">,</span> <span class="n">pi</span><span class="o">=</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="p">(),</span> <span class="o">**</span><span class="n">attributes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a new part.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        name</span>
+<span class="sd">          Name of the new part</span>
+<span class="sd">        </span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>  <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+                        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">shortDescription</span><span class="o">=</span><span class="n">description</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;PART&quot;</span><span class="p">,</span>
+                    <span class="n">principalInvestigator</span><span class="o">=</span><span class="n">pi</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="o">**</span><span class="n">attributes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s1">&#39;parts&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.create_folder"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.create_folder">[docs]</a>    <span class="k">def</span> <span class="nf">create_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a folder with the given name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">folderName</span><span class="o">=</span><span class="n">name</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="IceClient.create_folder_permission"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.create_folder_permission">[docs]</a>    <span class="k">def</span> <span class="nf">create_folder_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_id</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">can_write</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a new permission for the given folder.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        folder_id</span>
+<span class="sd">          ID of the folder getting the permission</span>
+
+<span class="sd">        user_id, group_id</span>
+<span class="sd">          Provide either one to identify who gets the permission</span>
+<span class="sd">        </span>
+<span class="sd">        can_write</span>
+<span class="sd">          Allows users to both add files to the folder and overwrite data</span>
+<span class="sd">          from files in the folder (!! use with care).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">article</span><span class="o">=</span><span class="s2">&quot;GROUP&quot;</span> <span class="k">if</span> <span class="n">group_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;ACCOUNT&quot;</span><span class="p">,</span>
+            <span class="n">typeId</span><span class="o">=</span><span class="n">folder_id</span><span class="p">,</span>
+            <span class="n">articleId</span><span class="o">=</span><span class="n">group_id</span> <span class="k">if</span> <span class="n">group_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">user_id</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;WRITE_FOLDER&quot;</span> <span class="k">if</span> <span class="n">can_write</span> <span class="k">else</span> <span class="s2">&quot;READ_FOLDER&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s1">&#39;folders/</span><span class="si">%s</span><span class="s1">/permissions&#39;</span> <span class="o">%</span> <span class="n">folder_id</span><span class="p">,</span>
+                            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IceClient.delete_folder_permission"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.delete_folder_permission">[docs]</a>    <span class="k">def</span> <span class="nf">delete_folder_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_id</span><span class="p">,</span> <span class="n">permission_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a permission attached to a given folder.&quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;folders/</span><span class="si">%s</span><span class="s2">/permissions/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">folder_id</span><span class="p">,</span> <span class="n">permission_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.add_to_folder"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.add_to_folder">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entries_ids</span><span class="o">=</span><span class="p">(),</span> <span class="n">folders</span><span class="o">=</span><span class="p">(),</span> <span class="n">folders_ids</span><span class="o">=</span><span class="p">(),</span>
+                      <span class="n">remote_entries</span><span class="o">=</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;Add a list of entries to a list of folders.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        entries_ids</span>
+<span class="sd">          List of entry IDS</span>
+
+<span class="sd">        folders</span>
+<span class="sd">          List of full folder infos. (NOT folder ids). I guess this is to allow</span>
+<span class="sd">          folders on remote ICE instances. Confusing, but you can use</span>
+<span class="sd">          ``folders_ids`` instead.</span>
+<span class="sd">        </span>
+<span class="sd">        folder_ids</span>
+<span class="sd">          List of folder IDs that can be provided instead of the ``folders``</span>
+<span class="sd">          infos list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">folders_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">folders</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_folder_infos</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span> <span class="k">for</span> <span class="n">fid</span> <span class="ow">in</span> <span class="n">folders_ids</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">destination</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">folders</span><span class="p">),</span>
+            <span class="n">entries</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">entries_ids</span><span class="p">),</span>
+            <span class="n">remoteEntries</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">remote_entries</span><span class="p">),</span>
+            <span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">selectionType</span><span class="o">=</span><span class="s1">&#39;COLLECTION&#39;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;PUT&quot;</span><span class="p">,</span> <span class="s2">&quot;folders/entries&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IceClient.remove_from_folder"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.remove_from_folder">[docs]</a>    <span class="k">def</span> <span class="nf">remove_from_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entries_ids</span><span class="p">,</span> <span class="n">folder_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dissociate a list of entries from a folder.&quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;folders/</span><span class="si">%s</span><span class="s2">/entries?move=false&quot;</span> <span class="o">%</span> <span class="n">folder_id</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">entries</span><span class="o">=</span><span class="n">entries_ids</span><span class="p">,</span> <span class="n">folderId</span><span class="o">=</span><span class="n">folder_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.attach_record_to_part"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.attach_record_to_part">[docs]</a>    <span class="k">def</span> <span class="nf">attach_record_to_part</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ice_record_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ice_part_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">record</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">record_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">filename</span> <span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">record_format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attach a BioPython record or raw text record to a part</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ice_record_id</span>
+<span class="sd">          A uuid (like aw3de45-sfjn389-lng563d...) that identifies the record</span>
+<span class="sd">          attachment of the part in ICE. It is generally the field &quot;recordId&quot;</span>
+<span class="sd">          when you retrieve a part&#39;s infos in ICE. If you have no clue, leave</span>
+<span class="sd">          this to None and provide a ``ice_part_id`` instead.</span>
+
+<span class="sd">        ice_part_id</span>
+<span class="sd">          The id of an ICE entry that can be provided instead of the</span>
+<span class="sd">          ``ice_record_id``.</span>
+
+<span class="sd">        record</span>
+<span class="sd">          A Biopython record</span>
+<span class="sd">        </span>
+<span class="sd">        record_text</span>
+<span class="sd">          Raw text from a FASTA/Genbank record.</span>
+<span class="sd">        </span>
+<span class="sd">        filename</span>
+<span class="sd">          If set to &quot;auto&quot;, will be &quot;record_id.gb&quot; for genbank format.</span>
+<span class="sd">        </span>
+<span class="sd">        record_format</span>
+<span class="sd">          When providing a fasta format in record_text, set this to &quot;fasta&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">typedata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;fasta&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="s1">&#39;fa&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;mimetype&#39;</span><span class="p">:</span> <span class="s1">&#39;application/biosequence.fasta&#39;</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;genbank&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="s1">&#39;gb&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;mimetype&#39;</span><span class="p">:</span> <span class="s1">&#39;application/biosequence.genbank&#39;</span>
+            <span class="p">},</span>
+        <span class="p">}[</span><span class="n">record_format</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">ice_record_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ice_record_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_part_infos</span><span class="p">(</span><span class="n">ice_part_id</span><span class="p">)[</span><span class="s1">&#39;recordId&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stringio</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+            <span class="n">SeqIO</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">stringio</span><span class="p">,</span> <span class="s2">&quot;genbank&quot;</span><span class="p">)</span>
+            <span class="n">record_text</span> <span class="o">=</span> <span class="n">stringio</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">id</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">typedata</span><span class="p">[</span><span class="s1">&#39;extension&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;uploaded_with_icebreaker.&#39;</span> <span class="o">+</span> <span class="n">typedata</span><span class="p">[</span><span class="s1">&#39;extension&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;file/sequence&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;entryType&#39;</span><span class="p">:</span> <span class="s1">&#39;PART&#39;</span><span class="p">,</span> <span class="s1">&#39;entryRecordId&#39;</span><span class="p">:</span> <span class="n">ice_record_id</span><span class="p">},</span>
+            <span class="n">files</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">record_text</span><span class="p">,</span> <span class="n">typedata</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">])},</span>
+            <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="IceClient.delete_part_record"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.delete_part_record">[docs]</a>    <span class="k">def</span> <span class="nf">delete_part_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove the record attached to a part.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/sequence&quot;</span> <span class="o">%</span> <span class="n">part_id</span><span class="p">,</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s2">&quot;raw&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_user_groups"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_user_groups">[docs]</a>    <span class="k">def</span> <span class="nf">get_user_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s2">&quot;session_id&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List all groups a user (this user by default) is part of.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">user_id</span> <span class="o">==</span> <span class="s2">&quot;session_id&quot;</span><span class="p">:</span>
+            <span class="n">user_id</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">get_session_user_id</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;users/</span><span class="si">%s</span><span class="s2">/groups&quot;</span> <span class="o">%</span> <span class="n">user_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IceClient.trash_parts"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.trash_parts">[docs]</a>    <span class="k">def</span> <span class="nf">trash_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_ids</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Place the list of IDed parts in the trash.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="s1">&#39;parts/trash&#39;</span><span class="p">,</span>
+                            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">part_id</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="n">visible</span><span class="p">)</span>
+                                  <span class="k">for</span> <span class="n">part_id</span> <span class="ow">in</span> <span class="n">part_ids</span><span class="p">],</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s2">&quot;raw&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.find_parts_by_custom_field_value"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.find_parts_by_custom_field_value">[docs]</a>    <span class="k">def</span> <span class="nf">find_parts_by_custom_field_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find all parts whose (extra) field &quot;parameter&quot; is set to &quot;value&quot; &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_part_custom_fields_list</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">parameter</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">):</span>
+                    <span class="n">entry</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+                    <span class="k">break</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_collections_list"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_collections_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_collections_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list [&#39;FEATURED&#39;, &#39;SHARED&#39;, etc.]&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;FEATURED PERSONAL SHARED DRAFT PENDING DELETED&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="IceClient.rebuild_search_indexes"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.rebuild_search_indexes">[docs]</a>    <span class="k">def</span> <span class="nf">rebuild_search_indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Rebuild the search indexes.</span>
+
+<span class="sd">        An OK response does not mean that it is finished, just that the</span>
+<span class="sd">        rebuild was scheduled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;PUT&quot;</span><span class="p">,</span> <span class="s2">&quot;search/indexes/lucene&quot;</span><span class="p">,</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s2">&quot;raw&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_part_custom_fields_list"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_custom_fields_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_custom_fields_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of all custom fields for a given part.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns a list of the form ``[{name: &#39;field1&#39;, value: 321}, ...]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="s2">&quot;custom-fields?partId=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">part_id</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_part_custom_field"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_part_custom_field">[docs]</a>    <span class="k">def</span> <span class="nf">get_part_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">field_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the value for a part&#39;s custom field.</span>
+<span class="sd">        </span>
+<span class="sd">        The value will be a list if the part has several values attached to</span>
+<span class="sd">        that field name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fields_list</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">get_part_custom_fields_list</span><span class="p">(</span><span class="n">part_id</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">field_name</span><span class="p">:</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Part </span><span class="si">%s</span><span class="s1"> has no custom field &quot;</span><span class="si">%s</span><span class="s1">&quot;.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">part_id</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">results</span></div>
+    
+    <span class="k">def</span> <span class="nf">set_part_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">partId</span><span class="o">=</span><span class="n">part_id</span><span class="p">,</span> <span class="n">edit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">nameInvalid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">valueInvalid</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;custom-fields&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">delete_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">custom_field_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="s2">&quot;custom-fields/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">custom_field_id</span><span class="p">,</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+    
+    <span class="c1"># Legacy and super-experimental stuff</span>
+
+    <span class="k">def</span> <span class="nf">__get_part_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">folder_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">collection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">use_filter</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the id of a part, given a name.</span>
+
+<span class="sd">        This method works by pulling all data from selected folders and looking</span>
+<span class="sd">        for the part&#39;s name. Therefore it can be very long for big folders.</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        </span>
+<span class="sd">        name</span>
+<span class="sd">          Name of the part to be IDed</span>
+
+<span class="sd">        folder_id</span>
+<span class="sd">          Folder ID (or list of) where to find the part.</span>
+<span class="sd">          </span>
+<span class="sd">        collection</span>
+<span class="sd">          Collection where to find the part. Can be provided instead of</span>
+<span class="sd">          folder_id.        </span>
+<span class="sd">        </span>
+<span class="sd">        use_filter</span>
+<span class="sd">          If true, the ICE request will use filtering. This if faster for a</span>
+<span class="sd">          one-off ID search but if you use caching and do many part IDing you</span>
+<span class="sd">          will be better off without the filtering (your first search will be</span>
+<span class="sd">          very long but next searches will be instantaneous)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">collection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">folder_id</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span>
+                <span class="n">f</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_collection_folders</span><span class="p">(</span><span class="n">collection</span><span class="p">)]))</span>
+        
+        <span class="n">parts_names_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_folder_parts_names_to_ids</span><span class="p">(</span>
+            <span class="n">folder_id</span><span class="p">,</span> <span class="n">must_contain</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">use_filter</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parts_names_ids</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;No part named </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">name</span>
+            <span class="n">suggestions</span> <span class="o">=</span> <span class="n">did_you_mean</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parts_names_ids</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">suggestions</span><span class="p">):</span>
+                <span class="n">error</span> <span class="o">+=</span> <span class="s2">&quot; Suggestions: </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">parts_names_ids</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Found several folders named </span><span class="si">%s</span><span class="s2">, with IDs </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">id</span><span class="p">])))</span>
+        <span class="k">return</span> <span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="nf">__get_collection_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collection</span><span class="p">,</span> <span class="n">ignored_folders</span><span class="o">=</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;Return all entries in a given collection&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_folder_entries</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_collection_folders</span><span class="p">(</span><span class="n">collection</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">f</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignored_folders</span>
-        <span class="p">],</span> <span class="p">[])</span>
-    
-    <span class="k">def</span> <span class="nf">get_collections_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s2">&quot;FEATURED PERSONAL SHARED DRAFT PENDING DELETED&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
+        <span class="p">],</span> <span class="p">[])</span></div>
 </pre></div>
 
            </div>
