@@ -1,6 +1,13 @@
 IceBreaker
 ----------
 
+.. image:: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker.svg?branch=master
+    :target: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker
+
+.. image:: https://coveralls.io/repos/github/Edinburgh-Genome-Foundry/icebreaker/badge.svg?branch=master
+    :target: https://coveralls.io/github/Edinburgh-Genome-Foundry/icebreaker?branch=master
+
+
 Icebreaker provides Python interface for the `JBEI ICE sample manager <https://github.com/JBEI/ice>`_.
 
 See the full API documentation `here <https://edinburgh-genome-foundry.github.io/icebreaker/>`_
@@ -62,11 +69,11 @@ Or:
 The configuration can also be written in a yaml file so you can write
 ``IceClient('config.yml')`` where ``config.yml`` reads as follows:
 
-```
-root: https://my.ice.instance.org
-email: michael.swann@genomefoundry.org
-password: ic3ic3baby
-```
+.. code:: yaml
+
+    root: https://my.ice.instance.org
+    email: michael.swann@genomefoundry.org
+    password: ic3ic3baby
 
 Extracting all records from a folder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
