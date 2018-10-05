@@ -9,7 +9,7 @@ import proglog
 from Bio import SeqIO
 
 
-from .tools import did_you_mean, ice_genbank_to_record
+from .tools import did_you_mean, ice_genbank_to_record, sanitize_well_name
 
 class IceClient:
     """Session to easily interact with an ICE instance."""
@@ -71,6 +71,8 @@ class IceClient:
         elif "password" in config:
             self.get_new_session_id(config["email"], config["password"])
     
+    def request_site_infos(self):
+        return self.request("GET", "site")
     def _endpoint_to_url(self, endpoint):
         """Complete endpoint by adding domain name."""
         return self.root + '/rest/' + endpoint
@@ -183,6 +185,80 @@ class IceClient:
     def get_part_samples(self, id):
         """Return a list of samples (dicts) for the entity with that id."""
         return self.request("GET", 'parts/%s/samples' % id)
+    
+    def create_part_sample(self, part_id, plate_name, well,
+                           depositor='auto',sample_label='auto',
+                           tube_display='', sample_barcode='auto',
+                           plate_type = 'PLATE96',
+                           assert_sample_created=True):
+
+        """Create a new sample for a part.
+
+        This will fail silently if a sample already exists in the given
+        well.
+
+
+        Returns
+        -------
+
+        query_result
+          A dict of the form ``{resultCount: 0, data:[{location:}, ...]}``
+          where the ``data`` list seems to contain the same as the result
+          of ``self.get_part_samples``. the last item in the list will be
+          the freshly added sample.
+        """
+        well = sanitize_well_name(well)
+        if sample_label == 'auto':
+            sample_label = "_".join([plate_name, well])
+        if sample_barcode == 'auto':
+            sample_barcode = "_".join([plate_name, well])
+        
+        if depositor == 'auto':
+            depositor = {'id': self.get_session_user_id(),
+                         'email': self.session_infos['email']}
+        
+        data = {
+            'add': True,
+            'code': well,
+            'label': sample_label,
+            'depositor': depositor,
+            'open': {
+                'barcode': sample_barcode,
+                'cell': well
+            },
+            'location': {
+                'type': plate_type,
+                'display': plate_name,
+                'child': {
+                    'type': 'WELL',
+                    'display': well,
+                    'child': {
+                        'type': 'TUBE',
+                        'display': tube_display,
+                        'volume': 15
+                    }
+                }
+            }
+        }
+
+        n_samples_before = 0
+        if assert_sample_created:
+            n_samples_before = len(self.get_part_samples(part_id))
+
+        result = self.request("POST", "parts/%s/samples" % part_id, data=data)
+
+        if assert_sample_created:
+            n_samples_after = len(result['data'])
+            if n_samples_after <= n_samples_before:
+                print (n_samples_after, n_samples_before)
+                raise IOError(
+                    "No new sample created, possibly already a sample at"
+                    "position %s" % (plate_name + "_" + well))
+
+        return result
+
+    def get_location_samples(location_id):
+        return self.request("GET", "samples/location/%s" % location_id)
     
     def get_sequence(self, id, format='genbank'):
         """Return genbank text for the entity with that id."""
@@ -442,7 +518,8 @@ class IceClient:
     def get_session_user_id(self):
         """Return the ICE id of the user of the current session."""
         if 'id' not in self.session_infos:
-            raise ValueError("get_session_user_id only works")
+            raise ValueError("get_session_user_id does not work for sessions"
+                             "without email/password authentication.")
         return self.session_infos['id']
     
     def restrict_part_to_user(self, part_id, user_id='current_user'):

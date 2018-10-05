@@ -1,6 +1,7 @@
 from io import StringIO
 from Bio import SeqIO
 from fuzzywuzzy import process
+import re
 
 def did_you_mean(name, other_names, limit=5, min_score=50):
     results = process.extract(name, list(other_names), limit=limit)
@@ -28,3 +29,10 @@ def load_record(filename, name="unnamed", fmt='auto'):
         record.id = name
         record.name = name.replace(" ", "_")[:20]
     return record
+
+def sanitize_well_name(well_name):
+    matches = re.match("(\S+)(\d+)", well_name)
+    if matches is None:
+        raise ValueError("%s is not a valid well name." % well_name)
+    letter, number = matches.groups()
+    return letter + "%02d" % int(number)
