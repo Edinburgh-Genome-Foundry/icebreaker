@@ -257,13 +257,13 @@ class IceClient:
 
         return result
 
-    def get_location_samples(location_id):
+    def get_location_samples(self, location_id):
         return self.request("GET", "samples/location/%s" % location_id)
     
     def get_sequence(self, id, format='genbank'):
         """Return genbank text for the entity with that id."""
         endpoint = "file/%s/sequence/%s" % (id, format)
-        return self.request("GET", endpoint, response_type='file')
+        return self.request("GET", endpoint, response_type='file').decode()
         
     def get_record(self, id):
         """Return a biopython record for the entity with that id."""
