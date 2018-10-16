@@ -30,6 +30,8 @@
   
 
   
+    <link rel="stylesheet" href="../../_static/css/main.css" type="text/css" />
+  
 
   
         <link rel="index" title="Index"
@@ -164,7 +166,7 @@
 <span class="kn">from</span> <span class="nn">Bio</span> <span class="k">import</span> <span class="n">SeqIO</span>
 
 
-<span class="kn">from</span> <span class="nn">.tools</span> <span class="k">import</span> <span class="n">did_you_mean</span><span class="p">,</span> <span class="n">ice_genbank_to_record</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="k">import</span> <span class="n">did_you_mean</span><span class="p">,</span> <span class="n">ice_genbank_to_record</span><span class="p">,</span> <span class="n">sanitize_well_name</span>
 
 <div class="viewcode-block" id="IceClient"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient">[docs]</a><span class="k">class</span> <span class="nc">IceClient</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Session to easily interact with an ICE instance.&quot;&quot;&quot;</span>
@@ -226,6 +228,8 @@
         <span class="k">elif</span> <span class="s2">&quot;password&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_new_session_id</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">])</span>
     
+    <span class="k">def</span> <span class="nf">request_site_infos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;site&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_endpoint_to_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Complete endpoint by adding domain name.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">+</span> <span class="s1">&#39;/rest/&#39;</span> <span class="o">+</span> <span class="n">endpoint</span>
@@ -339,10 +343,84 @@
         <span class="sd">&quot;&quot;&quot;Return a list of samples (dicts) for the entity with that id.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;parts/</span><span class="si">%s</span><span class="s1">/samples&#39;</span> <span class="o">%</span> <span class="nb">id</span><span class="p">)</span></div>
     
+<div class="viewcode-block" id="IceClient.create_part_sample"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.create_part_sample">[docs]</a>    <span class="k">def</span> <span class="nf">create_part_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span>
+                           <span class="n">depositor</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">sample_label</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                           <span class="n">tube_display</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sample_barcode</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                           <span class="n">plate_type</span> <span class="o">=</span> <span class="s1">&#39;PLATE96&#39;</span><span class="p">,</span>
+                           <span class="n">assert_sample_created</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Create a new sample for a part.</span>
+
+<span class="sd">        This will fail silently if a sample already exists in the given</span>
+<span class="sd">        well.</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        query_result</span>
+<span class="sd">          A dict of the form ``{resultCount: 0, data:[{location:}, ...]}``</span>
+<span class="sd">          where the ``data`` list seems to contain the same as the result</span>
+<span class="sd">          of ``self.get_part_samples``. the last item in the list will be</span>
+<span class="sd">          the freshly added sample.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">well</span> <span class="o">=</span> <span class="n">sanitize_well_name</span><span class="p">(</span><span class="n">well</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sample_label</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">sample_label</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">sample_barcode</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">sample_barcode</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="n">depositor</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">depositor</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session_user_id</span><span class="p">(),</span>
+                         <span class="s1">&#39;email&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="p">[</span><span class="s1">&#39;email&#39;</span><span class="p">]}</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;add&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">&#39;code&#39;</span><span class="p">:</span> <span class="n">well</span><span class="p">,</span>
+            <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">sample_label</span><span class="p">,</span>
+            <span class="s1">&#39;depositor&#39;</span><span class="p">:</span> <span class="n">depositor</span><span class="p">,</span>
+            <span class="s1">&#39;open&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;barcode&#39;</span><span class="p">:</span> <span class="n">sample_barcode</span><span class="p">,</span>
+                <span class="s1">&#39;cell&#39;</span><span class="p">:</span> <span class="n">well</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">plate_type</span><span class="p">,</span>
+                <span class="s1">&#39;display&#39;</span><span class="p">:</span> <span class="n">plate_name</span><span class="p">,</span>
+                <span class="s1">&#39;child&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;WELL&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;display&#39;</span><span class="p">:</span> <span class="n">well</span><span class="p">,</span>
+                    <span class="s1">&#39;child&#39;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;TUBE&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;display&#39;</span><span class="p">:</span> <span class="n">tube_display</span><span class="p">,</span>
+                        <span class="s1">&#39;volume&#39;</span><span class="p">:</span> <span class="mi">15</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="n">n_samples_before</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">assert_sample_created</span><span class="p">:</span>
+            <span class="n">n_samples_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_part_samples</span><span class="p">(</span><span class="n">part_id</span><span class="p">))</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/samples&quot;</span> <span class="o">%</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">assert_sample_created</span><span class="p">:</span>
+            <span class="n">n_samples_after</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">n_samples_after</span> <span class="o">&lt;=</span> <span class="n">n_samples_before</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="p">(</span><span class="n">n_samples_after</span><span class="p">,</span> <span class="n">n_samples_before</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                    <span class="s2">&quot;No new sample created, possibly already a sample at&quot;</span>
+                    <span class="s2">&quot;position </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">plate_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">well</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">get_location_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;samples/location/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">location_id</span><span class="p">)</span>
+    
 <div class="viewcode-block" id="IceClient.get_sequence"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_sequence">[docs]</a>    <span class="k">def</span> <span class="nf">get_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;genbank&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return genbank text for the entity with that id.&quot;&quot;&quot;</span>
         <span class="n">endpoint</span> <span class="o">=</span> <span class="s2">&quot;file/</span><span class="si">%s</span><span class="s2">/sequence/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span></div>
         
 <div class="viewcode-block" id="IceClient.get_record"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_record">[docs]</a>    <span class="k">def</span> <span class="nf">get_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a biopython record for the entity with that id.&quot;&quot;&quot;</span>
@@ -597,7 +675,8 @@
 <div class="viewcode-block" id="IceClient.get_session_user_id"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_session_user_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_session_user_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the ICE id of the user of the current session.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_session_user_id only works&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_session_user_id does not work for sessions&quot;</span>
+                             <span class="s2">&quot;without email/password authentication.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_infos</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div>
     
 <div class="viewcode-block" id="IceClient.restrict_part_to_user"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.restrict_part_to_user">[docs]</a>    <span class="k">def</span> <span class="nf">restrict_part_to_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s1">&#39;current_user&#39;</span><span class="p">):</span>
