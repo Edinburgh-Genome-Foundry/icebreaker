@@ -16,4 +16,4 @@ setup(
     packages=find_packages(exclude='docs'),
     include_package_data=True,
     install_requires=["requests", "fuzzywuzzy", "proglog", "biopython",
-                      "pandas", "pyyaml", "requests-cache"])
+                      "pandas", "pyyaml", "requests-cache", "flametree"])
