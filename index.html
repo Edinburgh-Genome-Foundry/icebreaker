@@ -276,7 +276,7 @@ for how to create a token), or an email/password authentication.</p>
 </pre></div>
 </div>
 <p>Result:</p>
-<div class="code highlight-default"><div class="highlight"><pre><span></span><span class="n">Primer</span> <span class="n">PRV_EMMA_IN00042</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">E06</span><span class="o">.</span>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">Primer</span> <span class="n">PRV_EMMA_IN00042</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">E06</span><span class="o">.</span>
 <span class="n">Primer</span> <span class="n">PRV_EMMA_IN00043</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">F06</span><span class="o">.</span>
 <span class="n">Primer</span> <span class="n">PRV_EMMA_IN00028</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G04</span><span class="o">.</span>
 <span class="n">Primer</span> <span class="n">PRV_EMMA_IN00060</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">PRIMER_PLATE_1</span><span class="o">/</span><span class="n">G08</span><span class="o">.</span>
@@ -294,6 +294,12 @@ for how to create a token), or an email/password authentication.</p>
 <em class="property">class </em><code class="descclassname">icebreaker.</code><code class="descname">IceClient</code><span class="sig-paren">(</span><em>config</em>, <em>cache=None</em>, <em>logger='bar'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Session to easily interact with an ICE instance.</p>
 <p class="rubric">Methods</p>
+<dl class="method">
+<dt id="icebreaker.IceClient.get_plates_list">
+<code class="descname">get_plates_list</code><span class="sig-paren">(</span><em>limit=100000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_plates_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_plates_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of plates in the database.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="icebreaker.IceClient.set_api_token">
 <code class="descname">set_api_token</code><span class="sig-paren">(</span><em>client</em>, <em>token</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.set_api_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.set_api_token" title="Permalink to this definition">¶</a></dt>
@@ -370,7 +376,7 @@ you are expecting a file.</p>
 
 <dl class="method">
 <dt id="icebreaker.IceClient.create_part_sample">
-<code class="descname">create_part_sample</code><span class="sig-paren">(</span><em>part_id</em>, <em>plate_name</em>, <em>well</em>, <em>depositor='auto'</em>, <em>sample_label='auto'</em>, <em>tube_display=''</em>, <em>sample_barcode='auto'</em>, <em>plate_type='PLATE96'</em>, <em>assert_sample_created=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.create_part_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.create_part_sample" title="Permalink to this definition">¶</a></dt>
+<code class="descname">create_part_sample</code><span class="sig-paren">(</span><em>part_id</em>, <em>plate_name</em>, <em>well</em>, <em>depositor='auto'</em>, <em>sample_label='auto'</em>, <em>tube_display='auto'</em>, <em>sample_barcode='auto'</em>, <em>plate_type='PLATE96'</em>, <em>assert_sample_created=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.create_part_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.create_part_sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a new sample for a part.</p>
 <p>This will fail silently if a sample already exists in the given
 well.</p>
@@ -389,6 +395,14 @@ the freshly added sample.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.delete_part_sample">
+<code class="descname">delete_part_sample</code><span class="sig-paren">(</span><em>part_id</em>, <em>sample_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.delete_part_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.delete_part_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a given sample for a given part.</p>
+<p>Note that if this is the last sample from a plate, the plate will
+disappear (stop showing in self.get_plates_list)</p>
 </dd></dl>
 
 <dl class="method">
@@ -543,6 +557,12 @@ folders with many parts)</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.get_collection_entries">
+<code class="descname">get_collection_entries</code><span class="sig-paren">(</span><em>collection</em>, <em>must_contain=None</em>, <em>as_iterator=False</em>, <em>limit=None</em>, <em>batch_size=15</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.get_collection_entries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.get_collection_entries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all entries in a given collection</p>
 </dd></dl>
 
 <dl class="method">
@@ -768,6 +788,21 @@ rebuild was scheduled.</p>
 <dd><p>Return the value for a part’s custom field.</p>
 <p>The value will be a list if the part has several values attached to
 that field name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.set_part_custom_field">
+<code class="descname">set_part_custom_field</code><span class="sig-paren">(</span><em>part_id</em>, <em>field_name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.set_part_custom_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.set_part_custom_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a custom field’s value for the given part/entry.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="icebreaker.IceClient.delete_custom_field">
+<code class="descname">delete_custom_field</code><span class="sig-paren">(</span><em>custom_field_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/icebreaker/IceClient.html#IceClient.delete_custom_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#icebreaker.IceClient.delete_custom_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a custom field.</p>
+<p>The id of the custom field can be obtained with either
+<code class="docutils literal"><span class="pre">self.get_part_custom_field(part_id,</span> <span class="pre">field_name)</span></code> or
+<code class="docutils literal"><span class="pre">self.get_part_custom_fields_list(part_id)</span></code></p>
 </dd></dl>
 
 </dd></dl>

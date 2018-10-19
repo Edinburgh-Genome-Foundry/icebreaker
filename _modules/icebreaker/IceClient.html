@@ -227,6 +227,20 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">set_api_token</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;client&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">])</span>
         <span class="k">elif</span> <span class="s2">&quot;password&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_new_session_id</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ice_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ice_version</span><span class="p">()</span>
+    
+    <span class="k">def</span> <span class="nf">_get_ice_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the version of the attached ICE instance.</span>
+<span class="sd">        </span>
+<span class="sd">        This method is automatically executed at client initialization and the</span>
+<span class="sd">        result is stored in ``self.ice_client``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;config/site&quot;</span><span class="p">)[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="IceClient.get_plates_list"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_plates_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_plates_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100000</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of plates in the database.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;samples/locations?limit=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">limit</span><span class="p">)</span></div>
     
     <span class="k">def</span> <span class="nf">request_site_infos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;site&quot;</span><span class="p">)</span>
@@ -345,7 +359,7 @@
     
 <div class="viewcode-block" id="IceClient.create_part_sample"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.create_part_sample">[docs]</a>    <span class="k">def</span> <span class="nf">create_part_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span>
                            <span class="n">depositor</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">sample_label</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
-                           <span class="n">tube_display</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sample_barcode</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                           <span class="n">tube_display</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">sample_barcode</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
                            <span class="n">plate_type</span> <span class="o">=</span> <span class="s1">&#39;PLATE96&#39;</span><span class="p">,</span>
                            <span class="n">assert_sample_created</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 
@@ -365,10 +379,13 @@
 <span class="sd">          the freshly added sample.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">well</span> <span class="o">=</span> <span class="n">sanitize_well_name</span><span class="p">(</span><span class="n">well</span><span class="p">)</span>
+        <span class="n">default_label</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">part_id</span><span class="p">)])</span>
         <span class="k">if</span> <span class="n">sample_label</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
-            <span class="n">sample_label</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">])</span>
+            <span class="n">sample_label</span> <span class="o">=</span> <span class="n">default_label</span>
         <span class="k">if</span> <span class="n">sample_barcode</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
-            <span class="n">sample_barcode</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">plate_name</span><span class="p">,</span> <span class="n">well</span><span class="p">])</span>
+            <span class="n">sample_barcode</span> <span class="o">=</span> <span class="n">default_label</span>
+        <span class="k">if</span> <span class="n">tube_display</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">tube_display</span> <span class="o">=</span> <span class="n">default_label</span>
         
         <span class="k">if</span> <span class="n">depositor</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
             <span class="n">depositor</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session_user_id</span><span class="p">(),</span>
@@ -403,16 +420,26 @@
             <span class="n">n_samples_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_part_samples</span><span class="p">(</span><span class="n">part_id</span><span class="p">))</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/samples&quot;</span> <span class="o">%</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">assert_sample_created</span><span class="p">:</span>
             <span class="n">n_samples_after</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">n_samples_after</span> <span class="o">&lt;=</span> <span class="n">n_samples_before</span><span class="p">:</span>
                 <span class="nb">print</span> <span class="p">(</span><span class="n">n_samples_after</span><span class="p">,</span> <span class="n">n_samples_before</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
-                    <span class="s2">&quot;No new sample created, possibly already a sample at&quot;</span>
-                    <span class="s2">&quot;position </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">plate_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">well</span><span class="p">))</span>
+                    <span class="s2">&quot;No new sample created, possibly already a sample at &quot;</span>
+                    <span class="s2">&quot;position </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">plate_name</span> <span class="o">+</span> <span class="s2">&quot; / &quot;</span> <span class="o">+</span> <span class="n">well</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="IceClient.delete_part_sample"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.delete_part_sample">[docs]</a>    <span class="k">def</span> <span class="nf">delete_part_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete a given sample for a given part.</span>
+<span class="sd">        </span>
+<span class="sd">        Note that if this is the last sample from a plate, the plate will</span>
+<span class="sd">        disappear (stop showing in self.get_plates_list)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;parts/</span><span class="si">%s</span><span class="s2">/samples/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">part_id</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">sample_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">get_location_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location_id</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;samples/location/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">location_id</span><span class="p">)</span>
@@ -627,6 +654,32 @@
             <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">iter_bar</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="n">offsets</span><span class="p">):</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;entries&quot;</span><span class="p">]:</span>
+                    <span class="k">yield</span> <span class="n">entry</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">generator</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">as_iterator</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">entry</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">limit</span><span class="p">),</span> <span class="n">iterator</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">iterator</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">entry</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">limit</span><span class="p">),</span> <span class="n">iterator</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="IceClient.get_collection_entries"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.get_collection_entries">[docs]</a>    <span class="k">def</span> <span class="nf">get_collection_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collection</span><span class="p">,</span> <span class="n">must_contain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">as_iterator</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return all entries in a given collection&quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;collections/</span><span class="si">%s</span><span class="s2">/entries&quot;</span> <span class="o">%</span> <span class="n">collection</span>
+        <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="n">offset</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+                <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span>  <span class="n">params</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="n">must_contain</span><span class="p">,</span>
+                                         <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">))</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="s2">&quot;resultCount&quot;</span><span class="p">]</span>
+        <span class="k">def</span> <span class="nf">generator</span><span class="p">():</span>
+            <span class="n">offsets</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">iter_bar</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="n">offsets</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]:</span>
                     <span class="k">yield</span> <span class="n">entry</span>
         <span class="n">iterator</span> <span class="o">=</span> <span class="n">generator</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">as_iterator</span><span class="p">:</span>
@@ -907,14 +960,21 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">results</span></div>
     
-    <span class="k">def</span> <span class="nf">set_part_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<div class="viewcode-block" id="IceClient.set_part_custom_field"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.set_part_custom_field">[docs]</a>    <span class="k">def</span> <span class="nf">set_part_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_id</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a custom field&#39;s value for the given part/entry.&quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">partId</span><span class="o">=</span><span class="n">part_id</span><span class="p">,</span> <span class="n">edit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">nameInvalid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">valueInvalid</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;custom-fields&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;custom-fields&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
     
-    <span class="k">def</span> <span class="nf">delete_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">custom_field_id</span><span class="p">):</span>
+<div class="viewcode-block" id="IceClient.delete_custom_field"><a class="viewcode-back" href="../../index.html#icebreaker.IceClient.delete_custom_field">[docs]</a>    <span class="k">def</span> <span class="nf">delete_custom_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">custom_field_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a custom field.</span>
+<span class="sd">        </span>
+<span class="sd">        The id of the custom field can be obtained with either</span>
+<span class="sd">        ``self.get_part_custom_field(part_id, field_name)`` or</span>
+<span class="sd">        ``self.get_part_custom_fields_list(part_id)``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span> <span class="s2">&quot;custom-fields/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">custom_field_id</span><span class="p">,</span>
-                            <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+                            <span class="n">response_type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span></div>
     
     <span class="c1"># Legacy and super-experimental stuff</span>
 
