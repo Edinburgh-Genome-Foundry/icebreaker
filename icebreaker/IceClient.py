@@ -54,6 +54,7 @@ class IceClient:
         if isinstance(config, str):
             with open(config, "r") as f:
                 config = next(yaml.load_all(f.read()))
+        self.verbose = verbose
         self.root = config["root"].strip('/')
         self.logger = proglog.default_bar_logger(logger)
         self.logger.ignore_bars_under = 2
@@ -70,7 +71,7 @@ class IceClient:
             self.set_api_token(config["client"], config["token"])
         elif "password" in config:
             self.get_new_session_id(config["email"], config["password"])
-        self.verbose = verbose
+        
         self.ice_version = self._get_ice_version()
     
     def _get_ice_version(self):
