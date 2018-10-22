@@ -14,7 +14,7 @@ from .tools import did_you_mean, ice_genbank_to_record, sanitize_well_name
 class IceClient:
     """Session to easily interact with an ICE instance."""
     
-    def __init__(self, config, cache=None, logger='bar'):
+    def __init__(self, config, cache=None, logger='bar', verbose=False):
         """Initializes an instance and a connection to an ICE instance.
         
         Examples
@@ -70,6 +70,20 @@ class IceClient:
             self.set_api_token(config["client"], config["token"])
         elif "password" in config:
             self.get_new_session_id(config["email"], config["password"])
+        self.verbose = verbose
+        self.ice_version = self._get_ice_version()
+    
+    def _get_ice_version(self):
+        """Get the version of the attached ICE instance.
+        
+        This method is automatically executed at client initialization and the
+        result is stored in ``self.ice_client``.
+        """
+        return self.request("GET", "config/site")["version"]
+    
+    def get_plates_list(self, limit=100000):
+        """Return a list of plates in the database."""
+        return self.request("GET", "samples/locations?limit=%d" % limit)
     
     def request_site_infos(self):
         return self.request("GET", "site")
@@ -163,7 +177,9 @@ class IceClient:
         else:
             response =  self.session.request(method, url, data=data,
                                              files=files)
-
+        if self.verbose:
+            print (method, url, json.dumps(data, indent=2),
+                   json.dumps(params, indent=2))
         if response.status_code == 200:
             if response_type == 'json':
                 return response.json()
@@ -188,7 +204,7 @@ class IceClient:
     
     def create_part_sample(self, part_id, plate_name, well,
                            depositor='auto',sample_label='auto',
-                           tube_display='', sample_barcode='auto',
+                           tube_display='auto', sample_barcode='auto',
                            plate_type = 'PLATE96',
                            assert_sample_created=True):
 
@@ -208,10 +224,13 @@ class IceClient:
           the freshly added sample.
         """
         well = sanitize_well_name(well)
+        default_label = "_".join([plate_name, well, str(part_id)])
         if sample_label == 'auto':
-            sample_label = "_".join([plate_name, well])
+            sample_label = default_label
         if sample_barcode == 'auto':
-            sample_barcode = "_".join([plate_name, well])
+            sample_barcode = default_label
+        if tube_display == 'auto':
+            tube_display = default_label
         
         if depositor == 'auto':
             depositor = {'id': self.get_session_user_id(),
@@ -246,16 +265,26 @@ class IceClient:
             n_samples_before = len(self.get_part_samples(part_id))
 
         result = self.request("POST", "parts/%s/samples" % part_id, data=data)
+        print (data)
 
         if assert_sample_created:
             n_samples_after = len(result['data'])
             if n_samples_after <= n_samples_before:
                 print (n_samples_after, n_samples_before)
                 raise IOError(
-                    "No new sample created, possibly already a sample at"
-                    "position %s" % (plate_name + "_" + well))
+                    "No new sample created, possibly already a sample at "
+                    "position %s" % (plate_name + " / " + well))
 
         return result
+    
+    def delete_part_sample(self, part_id, sample_id):
+        """Delete a given sample for a given part.
+        
+        Note that if this is the last sample from a plate, the plate will
+        disappear (stop showing in self.get_plates_list)
+        """
+        url = "parts/%s/samples/%s" % (str(part_id), str(sample_id))
+        return self.request("DELETE", url, response_type='raw')
 
     def get_location_samples(self, location_id):
         return self.request("GET", "samples/location/%s" % location_id)
@@ -319,7 +348,7 @@ class IceClient:
         return folders_names_ids
     
     def search(self, query, limit=None, batch_size=50, as_iterator=False,
-               min_score=0, entry_types=(),
+               min_score=0, entry_types=(), field_filters=(),
                sort_field="RELEVANCE"):
         """Return an iterator or list over text search results.
 
@@ -359,7 +388,8 @@ class IceClient:
                 parameters=dict(start=offset,
                                 retrieveCount= retrieve_count,
                                 sortField=sort_field),
-                blastQuery={}, queryString=query,webSearch=False
+                blastQuery={}, queryString=query, fieldFilters=field_filters,
+                webSearch=False
             )
             return self.request("POST", "search",
                                 data=data)
@@ -387,7 +417,8 @@ class IceClient:
                 return list(iterator)
     
     def find_entry_by_name(self, name, limit=10, min_score=0,
-                             entry_types=('PART', 'PLASMID')):
+                           strict_search=False,
+                           entry_types=('PART', 'PLASMID')):
         """Find an entry (id and other infos) via a name search.
         
         Note that because of possible weirdness in ICE searches, it is not
@@ -421,14 +452,22 @@ class IceClient:
             Where the suggestions are entry names in ICE very similar to the
             required name.
         """
-        results = self.search(name, limit=limit, min_score=min_score,
-                              entry_types=entry_types)
+        field_filters = []
+        if strict_search:
+            field_filters = [dict(field='NAME', value=name)]
+
+        results = self.search(
+            name, limit=limit,
+            min_score=min_score,
+            entry_types=entry_types,
+            field_filters=field_filters
+        )
         good_names = [r for r in results if r["name"] == name]
         if len(good_names) > 1:
             return None, ("Multiple matches", [r["id"] for r in r])
         elif len(good_names) == 0:
             suggestions = did_you_mean(
-                name, [r["name"] for r in results], min_score=80)
+                name, [(r["name"], r["id"]) for r in results], min_score=80)
             return None, ('No match', suggestions)
         return good_names[0], None
     
@@ -470,6 +509,32 @@ class IceClient:
             for offset in self.logger.iter_bar(batch=offsets):
                 result = request(offset)
                 for entry in result["entries"]:
+                    yield entry
+        iterator = generator()
+        if as_iterator:
+            if limit is not None:
+                return (entry for i, entry in zip(range(limit), iterator))
+            return iterator
+        else:
+            if limit is not None:
+                return [entry for i, entry in zip(range(limit), iterator)]
+            else:
+                return list(iterator)
+    
+    def get_collection_entries(self, collection, must_contain=None,
+                               as_iterator=False, limit=None, batch_size=15):
+        """Return all entries in a given collection"""
+        url = "collections/%s/entries" % collection
+        def request(offset):
+            return self.request(
+                "GET", url,  params=dict(limit=batch_size, filter=must_contain,
+                                         offset=offset))
+        count = request(0)["resultCount"]
+        def generator():
+            offsets = range(0, count, batch_size)
+            for offset in self.logger.iter_bar(batch=offsets):
+                result = request(offset)
+                for entry in result["data"]:
                     yield entry
         iterator = generator()
         if as_iterator:
@@ -751,11 +816,18 @@ class IceClient:
             return results
     
     def set_part_custom_field(self, part_id, field_name, value):
+        """Set a custom field's value for the given part/entry."""
         data = dict(name=field_name, value=value, partId=part_id, edit=True,
                     nameInvalid=False, valueInvalid=False)
         return self.request("POST", "custom-fields", data=data)
     
     def delete_custom_field(self, custom_field_id):
+        """Remove a custom field.
+        
+        The id of the custom field can be obtained with either
+        ``self.get_part_custom_field(part_id, field_name)`` or
+        ``self.get_part_custom_fields_list(part_id)``
+        """
         return self.request("DELETE", "custom-fields/%s" % custom_field_id,
                             response_type='raw')
     

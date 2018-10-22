@@ -138,7 +138,7 @@ Finally we look for available samples for each primer:
 
 Result:
 
-.. code ::
+.. code:: bash
 
     Primer PRV_EMMA_IN00042 is in PRIMER_PLATE_1/E06.
     Primer PRV_EMMA_IN00043 is in PRIMER_PLATE_1/F06.

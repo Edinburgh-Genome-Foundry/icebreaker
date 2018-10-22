@@ -36,7 +36,7 @@ def load_record(filename, name="unnamed", fmt='auto'):
     return record
 
 def sanitize_well_name(well_name):
-    matches = re.match("(\S+)(\d+)", well_name)
+    matches = re.match("([A-Z]*)(\d+)", well_name)
     if matches is None:
         raise ValueError("%s is not a valid well name." % well_name)
     letter, number = matches.groups()
