@@ -616,9 +616,38 @@ class IceClient:
                     parameters=parameters, **attributes)
         return self.request("POST", 'parts', data=data)
     
+    def create_plasmid(self, name, markers=('None',), description="A plasmid.",
+                       pi="unknown", parameters=(), **attributes):
+        """Create a new plasmid.
+
+        Parameters
+        ----------
+
+        name
+          Name of the new part
+        
+
+        """
+        parameters = [{"key": "", "value": value,  "name": name}
+                        for name, value in parameters]
+        data = dict(name=name, shortDescription=description, type="PLASMID",
+                    principalInvestigator=pi, selectionMarkers=list(markers),
+                    parameters=parameters, **attributes)
+        return self.request("POST", 'parts', data=data)
+    
     def create_folder(self, name):
         """Create a folder with the given name."""
         return self.request("POST", 'folders', data=dict(folderName=name))
+    
+    def delete_folder(self, folder_id, folder_type='auto'):
+        """Delete a folder by id.
+        
+        """
+        if folder_type == 'auto':
+            folder_type = self.get_folder_infos(folder_id)['type']
+            url = 'folders/%s?type=%s' % (folder_id, folder_type)
+        return self.request('DELETE', url)
+        
     
     def create_folder_permission(self, folder_id, group_id=None, user_id=None,
                                  can_write=False):
@@ -756,7 +785,22 @@ class IceClient:
         """List all groups a user (this user by default) is part of."""
         if user_id == "session_id":
             user_id =  self.get_session_user_id()
-        return self.request("GET", "users/%s/groups" % user_id)
+        return self.request("GET", "users/%s/groups" % user_id)['data']
+    
+    def find_group_by_label(self, group_label, user_id="session_id"):
+        groups = self.get_user_groups(user_id=user_id)
+        selected_groups = [group for group in groups
+                           if group['label'] == group_label]
+        if len(selected_groups) == 1:
+            return selected_groups[0]
+        if len(selected_groups) == 0:
+            error = (("No group found with label %s." % group_label) +
+                     "Maybe this client's user is not in that group")
+            raise ValueError(error)
+        if len(selected_groups) == 2:
+            raise ValueError(
+                "There were several groups with label %s !!" % group_label)
+
 
     def trash_parts(self, part_ids, visible='OK'):
         """Place the list of IDed parts in the trash."""
@@ -833,6 +877,10 @@ class IceClient:
                             response_type='raw')
     
     # Legacy and super-experimental stuff
+
+    def get_known_markers(self, token=''):
+        url = "search/filter?field=SELECTION_MARKERS&token=%s" % token
+        return self.request(url)
 
     def __get_part_id(self, name, folder_id=None, collection=None,
                     use_filter=False):
