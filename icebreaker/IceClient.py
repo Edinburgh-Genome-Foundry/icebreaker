@@ -522,6 +522,9 @@ class IceClient:
             else:
                 return list(iterator)
     
+    def get_part_folders(self, part_id):
+        return self.request('GET', 'parts/%s/folders' % part_id)
+    
     def get_collection_entries(self, collection, must_contain=None,
                                as_iterator=False, limit=None, batch_size=15):
         """Return all entries in a given collection"""
@@ -606,6 +609,9 @@ class IceClient:
 
         name
           Name of the new part
+        
+        description
+          
         
 
         """
@@ -699,7 +705,7 @@ class IceClient:
           List of folder IDs that can be provided instead of the ``folders``
           infos list.
         """
-        if folders_ids is not None:
+        if len(folders_ids):
             folders = [self.get_folder_infos(fid) for fid in folders_ids]
         data = dict(
             destination=list(folders),
@@ -876,6 +882,12 @@ class IceClient:
         return self.request("DELETE", "custom-fields/%s" % custom_field_id,
                             response_type='raw')
     
+    def rebuild_search_index(self):
+        return self.request('PUT', 'search/indexes/lucene',
+                            response_type='raw')
+    
+    def get_search_index_build_status(self):
+        return self.request('GET', 'search/indexes/LUCENE')
     # Legacy and super-experimental stuff
 
     def get_known_markers(self, token=''):
