@@ -465,7 +465,7 @@ class IceClient:
         )
         good_names = [r for r in results if r["name"] == name]
         if len(good_names) > 1:
-            return None, ("Multiple matches", [r["id"] for r in r])
+            return None, ("Multiple matches", [r["id"] for r in good_names])
         elif len(good_names) == 0:
             suggestions = did_you_mean(
                 name, [(r["name"], r["id"]) for r in results], min_score=80)
