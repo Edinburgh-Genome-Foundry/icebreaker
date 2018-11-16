@@ -939,6 +939,21 @@ class IceClient:
                           (name, ", ".join([str(d) for d in id])))
         return id[0]
     
+    def link_parts(self, part_id, related_part_id, link_type='CHILD'):
+        """Link two parts in a parent/child relationship.
+        
+        Parameter ``link_type`` is either CHILD or PARENT.
+        """
+        url = "parts/%s/links?linkType=%s" % (part_id, link_type)
+        data = {'id': related_part_id}
+        return self.request('POST', url, data=data, response_type='raw')
+    
+    def unlink_parts(self, part_id, related_part_id, link_type='CHILD'):
+        """Remove a parent/child relationship between two parts."""
+        url = "parts/%s/links/%s?linkType=%s" % (part_id, related_part_id,
+                                                 link_type)
+        return self.request('DELETE', url, response_type='raw')
+    
     def __get_collection_entries(self, collection, ignored_folders=()):
         """Return all entries in a given collection"""
         return sum([
