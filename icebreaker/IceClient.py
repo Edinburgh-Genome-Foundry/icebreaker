@@ -808,8 +808,11 @@ class IceClient:
                 "There were several groups with label %s !!" % group_label)
 
 
-    def trash_parts(self, part_ids, visible='OK'):
+    def trash_parts(self, part_ids, visible='OK', remove_parts_links=False):
         """Place the list of IDed parts in the trash."""
+        if remove_parts_links:
+            for part_id in part_ids:
+                self.remove_all_part_links(part_id=part_id)
         return self.request('POST', 'parts/trash',
                             data=[dict(id=part_id, visible=visible)
                                   for part_id in part_ids],
@@ -953,6 +956,17 @@ class IceClient:
         url = "parts/%s/links/%s?linkType=%s" % (part_id, related_part_id,
                                                  link_type)
         return self.request('DELETE', url, response_type='raw')
+    
+    def remove_all_part_links(self, part_id=None, linked_parts=None):
+        if part_id is not None:
+            linked_parts = self.get_part_infos(part_id)['linkedParts']
+        for linked_part in self.logger.iter_bar(linked_part=linked_parts):
+            for link_type in ['CHILD', 'PARENT']:
+                try:
+                    self.unlink_parts(part_id, linked_part['id'],
+                                    link_type=link_type)
+                except:
+                    pass
     
     def __get_collection_entries(self, collection, ignored_folders=()):
         """Return all entries in a given collection"""
