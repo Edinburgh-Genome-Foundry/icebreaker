@@ -811,7 +811,7 @@ class IceClient:
     def trash_parts(self, part_ids, visible='OK', remove_parts_links=False):
         """Place the list of IDed parts in the trash."""
         if remove_parts_links:
-            for part_id in part_ids:
+            for part_id in self.logger.iter_bar(entry=part_ids):
                 self.remove_all_part_links(part_id=part_id)
         return self.request('POST', 'parts/trash',
                             data=[dict(id=part_id, visible=visible)
