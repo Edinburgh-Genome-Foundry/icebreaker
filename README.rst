@@ -166,7 +166,7 @@ License = MIT
 Icebreaker is an open-source software originally written at the Edinburgh
 Genome Foundry by `Zulko <https://github.com/Zulko>`_ and `released on
 Github <https://github.com/Edinburgh-Genome-Foundry/icebreaker>`_ under
-the MIT licence (¢ Edinburg Genome Foundry). Everyone is welcome to
+the MIT licence (Copyright Edinburg Genome Foundry). Everyone is welcome to
 contribute !
 
 
