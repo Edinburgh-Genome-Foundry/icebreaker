@@ -50,8 +50,8 @@ for how to create a token), or an email/password authentication.
     # CONNECT TO ICE
     configuration = dict(
         root="https://my.ice.instance.org",
-        api_token="WMnlYlWHz+BC+7eFV=...",
-        api_token_client = "icebot"
+        token="WMnlYlWHz+BC+7eFV=...",
+        client = "icebot"
     )
     ice = icebreaker.IceClient(configuration)
 
