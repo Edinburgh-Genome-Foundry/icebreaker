@@ -11,10 +11,11 @@ from Bio import SeqIO
 
 from .tools import did_you_mean, ice_genbank_to_record, sanitize_well_name
 
+
 class IceClient:
     """Session to easily interact with an ICE instance."""
-    
-    def __init__(self, config, cache=None, logger='bar', verbose=False):
+
+    def __init__(self, config, cache=None, logger="bar", verbose=False):
         """Initializes an instance and a connection to an ICE instance.
         
         Examples
@@ -55,7 +56,7 @@ class IceClient:
             with open(config, "r") as f:
                 config = next(yaml.load_all(f.read()))
         self.verbose = verbose
-        self.root = config["root"].strip('/')
+        self.root = config["root"].strip("/")
         self.logger = proglog.default_bar_logger(logger)
         self.logger.ignore_bars_under = 2
         if cache is not None:
@@ -65,15 +66,15 @@ class IceClient:
         self.session.headers = headers = {}
         self.session_infos = {}
         if "session_id" in config:
-            headers['X-ICE-Authentication-SessionId'] = config['session_id']
-            self.session_infos.update(config.get('session_infos', {}))
+            headers["X-ICE-Authentication-SessionId"] = config["session_id"]
+            self.session_infos.update(config.get("session_infos", {}))
         if "client" in config:
             self.set_api_token(config["client"], config["token"])
         elif "password" in config:
             self.get_new_session_id(config["email"], config["password"])
-        
+
         self.ice_version = self._get_ice_version()
-    
+
     def _get_ice_version(self):
         """Get the version of the attached ICE instance.
         
@@ -81,17 +82,18 @@ class IceClient:
         result is stored in ``self.ice_client``.
         """
         return self.request("GET", "config/site")["version"]
-    
+
     def get_plates_list(self, limit=100000):
         """Return a list of plates in the database."""
         return self.request("GET", "samples/locations?limit=%d" % limit)
-    
+
     def request_site_infos(self):
         return self.request("GET", "site")
+
     def _endpoint_to_url(self, endpoint):
         """Complete endpoint by adding domain name."""
-        return self.root + '/rest/' + endpoint
-    
+        return self.root + "/rest/" + endpoint
+
     def set_api_token(self, client, token):
         """Set a new API token (and erase any previous token / session ID)
         
@@ -100,14 +102,12 @@ class IceClient:
 
         >>> ice_client.set_api_token('icebot', 'werouh4E4boubSFSDF=')
         """
-        self.session.headers.update({
-            "X-ICE-API-Token-Client": client,
-            "X-ICE-API-Token": token 
-        })
-        self.session.headers.pop('X-ICE-Authentication-SessionId', None)
-        self.session_infos = {'api_token': token, 'api_client': client}
+        self.session.headers.update(
+            {"X-ICE-API-Token-Client": client, "X-ICE-API-Token": token}
+        )
+        self.session.headers.pop("X-ICE-Authentication-SessionId", None)
+        self.session_infos = {"api_token": token, "api_client": client}
 
-    
     def get_new_session_id(self, email, password):
         """Authenticate and receive a new session ID.
 
@@ -115,15 +115,22 @@ class IceClient:
         email and password.
         """
         data = dict(email=email, password=password)
-        response = self.request('POST', 'accesstokens', data=data)
-        session_id = response['sessionId']
-        self.session.headers['X-ICE-Authentication-SessionId'] = session_id
+        response = self.request("POST", "accesstokens", data=data)
+        session_id = response["sessionId"]
+        self.session.headers["X-ICE-Authentication-SessionId"] = session_id
         self.session.headers.pop("X-ICE-API-Token-Client", None)
         self.session.headers.pop("X-ICE-API-Token", None)
         self.session_infos = response
 
-    def request(self, method, endpoint, params=None, data=None,
-                files=None, response_type='json'):
+    def request(
+        self,
+        method,
+        endpoint,
+        params=None,
+        data=None,
+        files=None,
+        response_type="json",
+    ):
         """Make a request to the ICE server.
 
         This is a generic method used by all the subsequent methods, and wraps
@@ -163,51 +170,72 @@ class IceClient:
           you are expecting a file.
 
         """
-        
+
         url = self._endpoint_to_url(endpoint)
         if files is None:
             headers = {
-              "Accept": 'application/json',
-              "Content-Type": 'application/json;charset=UTF-8' 
+                "Accept": "application/json",
+                "Content-Type": "application/json;charset=UTF-8",
             }
             headers.update(self.session.headers)
-            
-            response = self.session.request(method, url, params=params,
-                                            headers=headers,
-                                            data=json.dumps(data))
+
+            response = self.session.request(
+                method,
+                url,
+                params=params,
+                headers=headers,
+                data=json.dumps(data),
+            )
         else:
-            response =  self.session.request(method, url, data=data,
-                                             files=files)
+            response = self.session.request(
+                method, url, data=data, files=files
+            )
         if self.verbose:
-            print (method, url, json.dumps(data, indent=2),
-                   json.dumps(params, indent=2))
+            print(
+                method,
+                url,
+                json.dumps(data, indent=2),
+                json.dumps(params, indent=2),
+            )
         if response.status_code == 200:
-            if response_type == 'json':
+            if response_type == "json":
                 return response.json()
-            if response_type == 'file':
+            if response_type == "file":
                 return response.content
-            if response_type == 'raw':
+            if response_type == "raw":
                 return response
             return response
         else:
             raise IOError(
                 "ICE request failed with code %s (%s):\n "
-                "REQUEST: %s %s\nDATA: %s "% (
-                response.status_code, response.reason,
-                method, url, json.dumps(data, indent=2)
-            ))
-    
+                "REQUEST: %s %s\nDATA: %s "
+                % (
+                    response.status_code,
+                    response.reason,
+                    method,
+                    url,
+                    json.dumps(data, indent=2),
+                )
+            )
+
     # PARTS
-    
+
     def get_part_samples(self, id):
         """Return a list of samples (dicts) for the entity with that id."""
-        return self.request("GET", 'parts/%s/samples' % id)
-    
-    def create_part_sample(self, part_id, plate_name, well,
-                           depositor='auto',sample_label='auto',
-                           tube_display='auto', sample_barcode='auto',
-                           plate_type = 'PLATE96',
-                           assert_sample_created=True):
+        return self.request("GET", "parts/%s/samples" % id)
+
+    def create_part_sample(
+        self,
+        part_id,
+        plate_name,
+        well,
+        depositor="auto",
+        sample_label="auto",
+        tube_display="auto",
+        sample_barcode="auto",
+        plate_type="PLATE96",
+        assert_sample_created=True,
+    ):
 
         """Create a new sample for a part.
 
@@ -226,39 +254,38 @@ class IceClient:
         """
         well = sanitize_well_name(well)
         default_label = "_".join([plate_name, well, str(part_id)])
-        if sample_label == 'auto':
+        if sample_label == "auto":
             sample_label = default_label
-        if sample_barcode == 'auto':
+        if sample_barcode == "auto":
             sample_barcode = default_label
-        if tube_display == 'auto':
+        if tube_display == "auto":
             tube_display = default_label
-        
-        if depositor == 'auto':
-            depositor = {'id': self.get_session_user_id(),
-                         'email': self.session_infos['email']}
-        
-        data = {
-            'add': True,
-            'code': well,
-            'label': sample_label,
-            'depositor': depositor,
-            'open': {
-                'barcode': sample_barcode,
-                'cell': well
-            },
-            'location': {
-                'type': plate_type,
-                'display': plate_name,
-                'child': {
-                    'type': 'WELL',
-                    'display': well,
-                    'child': {
-                        'type': 'TUBE',
-                        'display': tube_display,
-                        'volume': 15
-                    }
-                }
+
+        if depositor == "auto":
+            depositor = {
+                "id": self.get_session_user_id(),
+                "email": self.session_infos["email"],
             }
+
+        data = {
+            "add": True,
+            "code": well,
+            "label": sample_label,
+            "depositor": depositor,
+            "open": {"barcode": sample_barcode, "cell": well},
+            "location": {
+                "type": plate_type,
+                "display": plate_name,
+                "child": {
+                    "type": "WELL",
+                    "display": well,
+                    "child": {
+                        "type": "TUBE",
+                        "display": tube_display,
+                        "volume": 15,
+                    },
+                },
+            },
         }
 
         n_samples_before = 0
@@ -266,18 +293,19 @@ class IceClient:
             n_samples_before = len(self.get_part_samples(part_id))
 
         result = self.request("POST", "parts/%s/samples" % part_id, data=data)
-        print (data)
+        print(data)
 
         if assert_sample_created:
-            n_samples_after = len(result['data'])
+            n_samples_after = len(result["data"])
             if n_samples_after <= n_samples_before:
-                print (n_samples_after, n_samples_before)
+                print(n_samples_after, n_samples_before)
                 raise IOError(
                     "No new sample created, possibly already a sample at "
-                    "position %s" % (plate_name + " / " + well))
+                    "position %s" % (plate_name + " / " + well)
+                )
 
         return result
-    
+
     def delete_part_sample(self, part_id, sample_id):
         """Delete a given sample for a given part.
         
@@ -285,45 +313,45 @@ class IceClient:
         disappear (stop showing in self.get_plates_list)
         """
         url = "parts/%s/samples/%s" % (str(part_id), str(sample_id))
-        return self.request("DELETE", url, response_type='raw')
+        return self.request("DELETE", url, response_type="raw")
 
     def get_location_samples(self, location_id):
         return self.request("GET", "samples/location/%s" % location_id)
-    
-    def get_sequence(self, id, format='genbank'):
+
+    def get_sequence(self, id, format="genbank"):
         """Return genbank text for the entity with that id."""
         endpoint = "file/%s/sequence/%s" % (id, format)
-        return self.request("GET", endpoint, response_type='file').decode()
-        
+        return self.request("GET", endpoint, response_type="file").decode()
+
     def get_record(self, id):
         """Return a biopython record for the entity with that id."""
-        genbank = self.get_sequence(id, format='genbank')
+        genbank = self.get_sequence(id, format="genbank")
         return ice_genbank_to_record(genbank)
 
     def get_part_infos(self, id):
         """Return infos (name, creation date...) for the part with that id."""
-        return self.request("GET", 'parts/%s' % id)
-    
+        return self.request("GET", "parts/%s" % id)
+
     def _folder_parts_names_to_ids(self, folder_ids, must_contain=None):
         parts_names_ids = {}
         if not isinstance(folder_ids, (list, tuple)):
             folder_ids = [folder_ids]
         for folder_id in folder_ids:
-            entries = self.get_folder_entries(folder_id=folder_id,
-                                              must_contain=must_contain)
+            entries = self.get_folder_entries(
+                folder_id=folder_id, must_contain=must_contain
+            )
             for entry in entries:
                 name = entry["name"]
                 if name not in parts_names_ids:
                     parts_names_ids[name] = []
-                parts_names_ids[name].append(entry['id'])
+                parts_names_ids[name].append(entry["id"])
         return parts_names_ids
-    
+
     # FOLDERS
-    
+
     def get_folder_infos(self, id):
         """Return infos (dict) on the folder whose id is provided."""
         return self.request("GET", "folders/%s" % id)
-    
 
     def get_folder_id(self, name, collection=None):
         folders_names_ids = self._collection_folders_names_to_ids(collection)
@@ -335,22 +363,32 @@ class IceClient:
             raise IOError(error)
         folder_id = list(set(folders_names_ids[name]))
         if len(folder_id) > 1:
-            raise IOError("Found several folders named %s, with IDs %s." %
-                          (name, ", ".join([str(d) for d in folder_id])))
+            raise IOError(
+                "Found several folders named %s, with IDs %s."
+                % (name, ", ".join([str(d) for d in folder_id]))
+            )
         return folder_id[0]
-    
+
     def _collection_folders_names_to_ids(self, collection):
         folders_names_ids = {}
         for folder in self.get_collection_folders(collection=collection):
             name = folder["folderName"]
             if name not in folders_names_ids:
                 folders_names_ids[name] = []
-            folders_names_ids[name].append(folder['id'])
+            folders_names_ids[name].append(folder["id"])
         return folders_names_ids
-    
-    def search(self, query, limit=None, batch_size=50, as_iterator=False,
-               min_score=0, entry_types=(), field_filters=(),
-               sort_field="RELEVANCE"):
+
+    def search(
+        self,
+        query,
+        limit=None,
+        batch_size=50,
+        as_iterator=False,
+        min_score=0,
+        entry_types=(),
+        field_filters=(),
+        sort_field="RELEVANCE",
+    ):
         """Return an iterator or list over text search results.
 
         Parameters
@@ -379,6 +417,7 @@ class IceClient:
         entries_iterator
           An iterator over the successive entries found by the search.
         """
+
         def request(offset):
             if limit is not None:
                 retrieve_count = min(batch_size, limit - offset + 1)
@@ -386,17 +425,22 @@ class IceClient:
                 retrieve_count = batch_size
             data = dict(
                 entryTypes=list(entry_types),
-                parameters=dict(start=offset,
-                                retrieveCount= retrieve_count,
-                                sortField=sort_field),
-                blastQuery={}, queryString=query, fieldFilters=field_filters,
-                webSearch=False
+                parameters=dict(
+                    start=offset,
+                    retrieveCount=retrieve_count,
+                    sortField=sort_field,
+                ),
+                blastQuery={},
+                queryString=query,
+                fieldFilters=field_filters,
+                webSearch=False,
             )
-            return self.request("POST", "search",
-                                data=data)
+            return self.request("POST", "search", data=data)
+
         count = request(0)["resultCount"]
         if limit:
             count = min(count, limit)
+
         def generator():
             offsets = range(0, count, batch_size)
             for offset in self.logger.iter_bar(batch=offsets):
@@ -404,8 +448,8 @@ class IceClient:
                 for entry in result["results"]:
                     if float(entry["score"]) < min_score:
                         return
-                    yield entry['entryInfo']
-                
+                    yield entry["entryInfo"]
+
         iterator = generator()
         if as_iterator:
             if limit is not None:
@@ -416,10 +460,15 @@ class IceClient:
                 return [entry for i, entry in zip(range(limit), iterator)]
             else:
                 return list(iterator)
-    
-    def find_entry_by_name(self, name, limit=10, min_score=0,
-                           strict_search=False,
-                           entry_types=('PART', 'PLASMID')):
+
+    def find_entry_by_name(
+        self,
+        name,
+        limit=10,
+        min_score=0,
+        strict_search=False,
+        entry_types=("PART", "PLASMID"),
+    ):
         """Find an entry (id and other infos) via a name search.
         
         Note that because of possible weirdness in ICE searches, it is not
@@ -455,25 +504,33 @@ class IceClient:
         """
         field_filters = []
         if strict_search:
-            field_filters = [dict(field='NAME', value=name)]
+            field_filters = [dict(field="NAME", value=name)]
 
         results = self.search(
-            name, limit=limit,
+            name,
+            limit=limit,
             min_score=min_score,
             entry_types=entry_types,
-            field_filters=field_filters
+            field_filters=field_filters,
         )
         good_names = [r for r in results if r["name"] == name]
         if len(good_names) > 1:
             return None, ("Multiple matches", [r["id"] for r in good_names])
         elif len(good_names) == 0:
             suggestions = did_you_mean(
-                name, [(r["name"], r["id"]) for r in results], min_score=80)
-            return None, ('No match', suggestions)
+                name, [(r["name"], r["id"]) for r in results], min_score=80
+            )
+            return None, ("No match", suggestions)
         return good_names[0], None
-    
-    def get_folder_entries(self, folder_id, must_contain=None,
-                           as_iterator=False, limit=None, batch_size=15):
+
+    def get_folder_entries(
+        self,
+        folder_id,
+        must_contain=None,
+        as_iterator=False,
+        limit=None,
+        batch_size=15,
+    ):
         """Return a list or iterator of all entries in a given ICE folder.
 
         Each entry is represented by a dictionnary giving its name, creation
@@ -500,17 +557,25 @@ class IceClient:
           folders with many parts)
         """
         url = "folders/%s/entries" % folder_id
+
         def request(offset):
             return self.request(
-                "GET", url,  params=dict(limit=batch_size, filter=must_contain,
-                                         offset=offset))
+                "GET",
+                url,
+                params=dict(
+                    limit=batch_size, filter=must_contain, offset=offset
+                ),
+            )
+
         count = request(0)["count"]
+
         def generator():
             offsets = range(0, count, batch_size)
             for offset in self.logger.iter_bar(batch=offsets):
                 result = request(offset)
                 for entry in result["entries"]:
                     yield entry
+
         iterator = generator()
         if as_iterator:
             if limit is not None:
@@ -521,25 +586,39 @@ class IceClient:
                 return [entry for i, entry in zip(range(limit), iterator)]
             else:
                 return list(iterator)
-    
+
     def get_part_folders(self, part_id):
-        return self.request('GET', 'parts/%s/folders' % part_id)
-    
-    def get_collection_entries(self, collection, must_contain=None,
-                               as_iterator=False, limit=None, batch_size=15):
+        return self.request("GET", "parts/%s/folders" % part_id)
+
+    def get_collection_entries(
+        self,
+        collection,
+        must_contain=None,
+        as_iterator=False,
+        limit=None,
+        batch_size=15,
+    ):
         """Return all entries in a given collection"""
         url = "collections/%s/entries" % collection
+
         def request(offset):
             return self.request(
-                "GET", url,  params=dict(limit=batch_size, filter=must_contain,
-                                         offset=offset))
+                "GET",
+                url,
+                params=dict(
+                    limit=batch_size, filter=must_contain, offset=offset
+                ),
+            )
+
         count = request(0)["resultCount"]
+
         def generator():
             offsets = range(0, count, batch_size)
             for offset in self.logger.iter_bar(batch=offsets):
                 result = request(offset)
                 for entry in result["data"]:
                     yield entry
+
         iterator = generator()
         if as_iterator:
             if limit is not None:
@@ -550,9 +629,9 @@ class IceClient:
                 return [entry for i, entry in zip(range(limit), iterator)]
             else:
                 return list(iterator)
-    
+
     # COLLECTIONS
-    
+
     def get_collection_folders(self, collection):
         """Return a list of folders in a given collection.
         
@@ -560,48 +639,56 @@ class IceClient:
         FEATURED PERSONAL SHARED DRAFTS PENDING DELETED
         """
         if isinstance(collection, tuple):
-            return sum([
-                self.get_collection_folders(c)
-                for c in collection
-            ], [])
+            return sum(
+                [self.get_collection_folders(c) for c in collection], []
+            )
         return self.request("GET", "collections/%s/folders" % collection)
-    
 
-
-    def change_user_password(self, new_password, user_id='session_user'):
+    def change_user_password(self, new_password, user_id="session_user"):
         """Change the password of a user (current session user by default)"""
-        if  user_id == 'session_user':
+        if user_id == "session_user":
             user_id = self.get_session_user_id()
-        return self.request("PUT", "users/%s/password" % user_id,
-                            data={'password': new_password})
-    
+        return self.request(
+            "PUT",
+            "users/%s/password" % user_id,
+            data={"password": new_password},
+        )
+
     def get_part_permissions(self, id):
         """Get a list of all permissions attached to a part"""
         return self.request("GET", "parts/%s/permissions" % id)
-    
+
     def delete_part_permission(self, part_id, permission_id):
         """Delete a permission for a given part."""
         url = "parts/%s/permissions/%s" % (part_id, permission_id)
-        return self.request("DELETE", url, response_type='raw')
-    
+        return self.request("DELETE", url, response_type="raw")
+
     def get_session_user_id(self):
         """Return the ICE id of the user of the current session."""
-        if 'id' not in self.session_infos:
-            raise ValueError("get_session_user_id does not work for sessions"
-                             "without email/password authentication.")
-        return self.session_infos['id']
-    
-    def restrict_part_to_user(self, part_id, user_id='current_user'):
+        if "id" not in self.session_infos:
+            raise ValueError(
+                "get_session_user_id does not work for sessions"
+                "without email/password authentication."
+            )
+        return self.session_infos["id"]
+
+    def restrict_part_to_user(self, part_id, user_id="current_user"):
         """Remove all permissions that are not from the given user."""
-        if user_id == 'current_user':
+        if user_id == "current_user":
             user_id = self.get_session_user_id()
         for permission in self.get_part_permissions(part_id):
-            is_group = 'account' not in permission
-            if is_group or (permission['account']['id'] != user_id):
-                 self.delete_part_permission(part_id, permission['id'])
-    
-    def create_part(self, name, description="A part.", pi="unknown",
-                    parameters=(), **attributes):
+            is_group = "account" not in permission
+            if is_group or (permission["account"]["id"] != user_id):
+                self.delete_part_permission(part_id, permission["id"])
+
+    def create_part(
+        self,
+        name,
+        description="A part.",
+        pi="unknown",
+        parameters=(),
+        **attributes
+    ):
         """Create a new part.
 
         Parameters
@@ -615,15 +702,29 @@ class IceClient:
         
 
         """
-        parameters = [{"key": "", "value": value,  "name": name}
-                        for name, value in parameters]
-        data = dict(name=name, shortDescription=description, type="PART",
-                    principalInvestigator=pi,
-                    parameters=parameters, **attributes)
-        return self.request("POST", 'parts', data=data)
-    
-    def create_plasmid(self, name, markers=('None',), description="A plasmid.",
-                       pi="unknown", parameters=(), **attributes):
+        parameters = [
+            {"key": "", "value": value, "name": name}
+            for name, value in parameters
+        ]
+        data = dict(
+            name=name,
+            shortDescription=description,
+            type="PART",
+            principalInvestigator=pi,
+            parameters=parameters,
+            **attributes
+        )
+        return self.request("POST", "parts", data=data)
+
+    def create_plasmid(
+        self,
+        name,
+        markers=("None",),
+        description="A plasmid.",
+        pi="unknown",
+        parameters=(),
+        **attributes
+    ):
         """Create a new plasmid.
 
         Parameters
@@ -634,29 +735,37 @@ class IceClient:
         
 
         """
-        parameters = [{"key": "", "value": value,  "name": name}
-                        for name, value in parameters]
-        data = dict(name=name, shortDescription=description, type="PLASMID",
-                    principalInvestigator=pi, selectionMarkers=list(markers),
-                    parameters=parameters, **attributes)
-        return self.request("POST", 'parts', data=data)
-    
+        parameters = [
+            {"key": "", "value": value, "name": name}
+            for name, value in parameters
+        ]
+        data = dict(
+            name=name,
+            shortDescription=description,
+            type="PLASMID",
+            principalInvestigator=pi,
+            selectionMarkers=list(markers),
+            parameters=parameters,
+            **attributes
+        )
+        return self.request("POST", "parts", data=data)
+
     def create_folder(self, name):
         """Create a folder with the given name."""
-        return self.request("POST", 'folders', data=dict(folderName=name))
-    
-    def delete_folder(self, folder_id, folder_type='auto'):
+        return self.request("POST", "folders", data=dict(folderName=name))
+
+    def delete_folder(self, folder_id, folder_type="auto"):
         """Delete a folder by id.
         
         """
-        if folder_type == 'auto':
-            folder_type = self.get_folder_infos(folder_id)['type']
-            url = 'folders/%s?type=%s' % (folder_id, folder_type)
-        return self.request('DELETE', url)
-        
-    
-    def create_folder_permission(self, folder_id, group_id=None, user_id=None,
-                                 can_write=False):
+        if folder_type == "auto":
+            folder_type = self.get_folder_infos(folder_id)["type"]
+            url = "folders/%s?type=%s" % (folder_id, folder_type)
+        return self.request("DELETE", url)
+
+    def create_folder_permission(
+        self, folder_id, group_id=None, user_id=None, can_write=False
+    ):
         """Add a new permission for the given folder.
         
         Parameters
@@ -676,18 +785,20 @@ class IceClient:
             article="GROUP" if group_id is not None else "ACCOUNT",
             typeId=folder_id,
             articleId=group_id if group_id is not None else user_id,
-            type="WRITE_FOLDER" if can_write else "READ_FOLDER"
+            type="WRITE_FOLDER" if can_write else "READ_FOLDER",
         )
-        return self.request("POST", 'folders/%s/permissions' % folder_id,
-                            data=data)
+        return self.request(
+            "POST", "folders/%s/permissions" % folder_id, data=data
+        )
 
     def delete_folder_permission(self, folder_id, permission_id):
         """Remove a permission attached to a given folder."""
         url = "folders/%s/permissions/%s" % (folder_id, permission_id)
-        return self.request("DELETE", url, response_type='raw')
-    
-    def add_to_folder(self, entries_ids=(), folders=(), folders_ids=(),
-                      remote_entries=()):
+        return self.request("DELETE", url, response_type="raw")
+
+    def add_to_folder(
+        self, entries_ids=(), folders=(), folders_ids=(), remote_entries=()
+    ):
         """Add a list of entries to a list of folders.
         
         Parameters
@@ -712,20 +823,27 @@ class IceClient:
             entries=list(entries_ids),
             remoteEntries=list(remote_entries),
             all=False,
-            selectionType='COLLECTION'
+            selectionType="COLLECTION",
         )
-        return self.request("PUT", "folders/entries", data=data,
-                            response_type='raw')
+        return self.request(
+            "PUT", "folders/entries", data=data, response_type="raw"
+        )
 
     def remove_from_folder(self, entries_ids, folder_id):
         """Dissociate a list of entries from a folder."""
         url = "folders/%s/entries?move=false" % folder_id
         data = dict(entries=entries_ids, folderId=folder_id)
-        return self.request("POST", url, data=data, response_type='raw')
-    
-    def attach_record_to_part(self, ice_record_id=None, ice_part_id=None,
-                              record=None, record_text=None,
-                              filename ='auto', record_format='genbank'):
+        return self.request("POST", url, data=data, response_type="raw")
+
+    def attach_record_to_part(
+        self,
+        ice_record_id=None,
+        ice_part_id=None,
+        record=None,
+        record_text=None,
+        filename="auto",
+        record_format="genbank",
+    ):
         """Attach a BioPython record or raw text record to a part
         
         Parameters
@@ -753,71 +871,77 @@ class IceClient:
           When providing a fasta format in record_text, set this to "fasta".
         """
         typedata = {
-            'fasta': {
-                'extension': 'fa',
-                'mimetype': 'application/biosequence.fasta'
+            "fasta": {
+                "extension": "fa",
+                "mimetype": "application/biosequence.fasta",
             },
-            'genbank': {
-                'extension': 'gb',
-                'mimetype': 'application/biosequence.genbank'
+            "genbank": {
+                "extension": "gb",
+                "mimetype": "application/biosequence.genbank",
             },
         }[record_format]
-        
+
         if ice_record_id is None:
-            ice_record_id = self.get_part_infos(ice_part_id)['recordId']
+            ice_record_id = self.get_part_infos(ice_part_id)["recordId"]
 
         if record is not None:
             stringio = StringIO()
             SeqIO.write(record, stringio, "genbank")
             record_text = stringio.getvalue()
-            if filename == 'auto':
-                filename = record.id + '.' + typedata['extension']
-        if filename == 'auto':
-            filename = 'uploaded_with_icebreaker.' + typedata['extension']
+            if filename == "auto":
+                filename = record.id + "." + typedata["extension"]
+        if filename == "auto":
+            filename = "uploaded_with_icebreaker." + typedata["extension"]
 
         return self.request(
-            "POST", "file/sequence",
-            data={'entryType': 'PART', 'entryRecordId': ice_record_id},
-            files={'file': (filename, record_text, typedata['mimetype'])},
-            response_type='raw'
+            "POST",
+            "file/sequence",
+            data={"entryType": "PART", "entryRecordId": ice_record_id},
+            files={"file": (filename, record_text, typedata["mimetype"])},
+            response_type="raw",
         )
 
     def delete_part_record(self, part_id):
         """Remove the record attached to a part."""
-        return self.request("DELETE", "parts/%s/sequence" % part_id,
-                            response_type="raw")
-    
+        return self.request(
+            "DELETE", "parts/%s/sequence" % part_id, response_type="raw"
+        )
+
     def get_user_groups(self, user_id="session_id"):
         """List all groups a user (this user by default) is part of."""
         if user_id == "session_id":
-            user_id =  self.get_session_user_id()
-        return self.request("GET", "users/%s/groups" % user_id)['data']
-    
+            user_id = self.get_session_user_id()
+        return self.request("GET", "users/%s/groups" % user_id)["data"]
+
     def find_group_by_label(self, group_label, user_id="session_id"):
         groups = self.get_user_groups(user_id=user_id)
-        selected_groups = [group for group in groups
-                           if group['label'] == group_label]
+        selected_groups = [
+            group for group in groups if group["label"] == group_label
+        ]
         if len(selected_groups) == 1:
             return selected_groups[0]
         if len(selected_groups) == 0:
-            error = (("No group found with label %s." % group_label) +
-                     "Maybe this client's user is not in that group")
+            error = (
+                "No group found with label %s." % group_label
+            ) + "Maybe this client's user is not in that group"
             raise ValueError(error)
         if len(selected_groups) == 2:
             raise ValueError(
-                "There were several groups with label %s !!" % group_label)
+                "There were several groups with label %s !!" % group_label
+            )
 
-
-    def trash_parts(self, part_ids, visible='OK', remove_parts_links=False):
+    def trash_parts(self, part_ids, visible="OK", remove_parts_links=False):
         """Place the list of IDed parts in the trash."""
         if remove_parts_links:
             for part_id in self.logger.iter_bar(entry=part_ids):
                 self.remove_all_part_links(part_id=part_id)
-        return self.request('POST', 'parts/trash',
-                            data=[dict(id=part_id, visible=visible)
-                                  for part_id in part_ids],
-                            response_type="raw")
-    
+        return self.request(
+            "POST",
+            "parts/trash",
+            data=[dict(id=part_id, visible=visible) for part_id in part_ids],
+            response_type="raw",
+        )
+
     def find_parts_by_custom_field_value(self, parameter, value):
         """Find all parts whose (extra) field "parameter" is set to "value" """
         results = []
@@ -825,38 +949,39 @@ class IceClient:
             parameters = self.get_part_custom_fields_list(entry["id"])
             for param in parameters:
                 if (param["name"] == parameter) and (param["value"] == value):
-                    entry['parameters'] = parameters
+                    entry["parameters"] = parameters
                     results.append(entry)
                     break
         return results
-    
+
     def get_collections_list(self):
         """Return a list ['FEATURED', 'SHARED', etc.]"""
         return "FEATURED PERSONAL SHARED DRAFT PENDING DELETED".split()
-    
+
     def rebuild_search_indexes(self):
         """Rebuild the search indexes.
 
         An OK response does not mean that it is finished, just that the
         rebuild was scheduled.
         """
-        return self.request("PUT", "search/indexes/lucene",
-                            response_type="raw")
-    
+        return self.request(
+            "PUT", "search/indexes/lucene", response_type="raw"
+        )
+
     def get_part_custom_fields_list(self, part_id):
         """Return a list of all custom fields for a given part.
         
         Returns a list of the form ``[{name: 'field1', value: 321}, ...]``
         """
-        return self.request('GET', "custom-fields?partId=%s" % part_id)
-    
+        return self.request("GET", "custom-fields?partId=%s" % part_id)
+
     def get_part_custom_field(self, part_id, field_name):
         """Return the value for a part's custom field.
         
         The value will be a list if the part has several values attached to
         that field name.
         """
-        fields_list =  self.get_part_custom_fields_list(part_id)
+        fields_list = self.get_part_custom_fields_list(part_id)
         results = []
         for field in fields_list:
             if field["name"] == field_name:
@@ -868,13 +993,19 @@ class IceClient:
             return results[0]
         else:
             return results
-    
+
     def set_part_custom_field(self, part_id, field_name, value):
         """Set a custom field's value for the given part/entry."""
-        data = dict(name=field_name, value=value, partId=part_id, edit=True,
-                    nameInvalid=False, valueInvalid=False)
+        data = dict(
+            name=field_name,
+            value=value,
+            partId=part_id,
+            edit=True,
+            nameInvalid=False,
+            valueInvalid=False,
+        )
         return self.request("POST", "custom-fields", data=data)
-    
+
     def delete_custom_field(self, custom_field_id):
         """Remove a custom field.
         
@@ -882,23 +1013,27 @@ class IceClient:
         ``self.get_part_custom_field(part_id, field_name)`` or
         ``self.get_part_custom_fields_list(part_id)``
         """
-        return self.request("DELETE", "custom-fields/%s" % custom_field_id,
-                            response_type='raw')
-    
+        return self.request(
+            "DELETE", "custom-fields/%s" % custom_field_id, response_type="raw"
+        )
+
     def rebuild_search_index(self):
-        return self.request('PUT', 'search/indexes/lucene',
-                            response_type='raw')
-    
+        return self.request(
+            "PUT", "search/indexes/lucene", response_type="raw"
+        )
+
     def get_search_index_build_status(self):
-        return self.request('GET', 'search/indexes/LUCENE')
+        return self.request("GET", "search/indexes/LUCENE")
+
     # Legacy and super-experimental stuff
 
-    def get_known_markers(self, token=''):
+    def get_known_markers(self, token=""):
         url = "search/filter?field=SELECTION_MARKERS&token=%s" % token
         return self.request(url)
 
-    def __get_part_id(self, name, folder_id=None, collection=None,
-                    use_filter=False):
+    def __get_part_id(
+        self, name, folder_id=None, collection=None, use_filter=False
+    ):
         """Find the id of a part, given a name.
 
         This method works by pulling all data from selected folders and looking
@@ -925,11 +1060,15 @@ class IceClient:
           very long but next searches will be instantaneous)
         """
         if collection is not None:
-            folder_id = tuple(sorted([
-                f['id'] for f in self.get_collection_folders(collection)]))
-        
+            folder_id = tuple(
+                sorted(
+                    [f["id"] for f in self.get_collection_folders(collection)]
+                )
+            )
+
         parts_names_ids = self._folder_parts_names_to_ids(
-            folder_id, must_contain=name if use_filter else None)
+            folder_id, must_contain=name if use_filter else None
+        )
         if name not in parts_names_ids:
             error = "No part named %s." % name
             suggestions = did_you_mean(name, parts_names_ids)
@@ -938,40 +1077,50 @@ class IceClient:
             raise IOError(error)
         id = list(set(parts_names_ids[name]))
         if len(id) > 1:
-            raise IOError("Found several folders named %s, with IDs %s." %
-                          (name, ", ".join([str(d) for d in id])))
+            raise IOError(
+                "Found several folders named %s, with IDs %s."
+                % (name, ", ".join([str(d) for d in id]))
+            )
         return id[0]
-    
-    def link_parts(self, part_id, related_part_id, link_type='CHILD'):
+
+    def link_parts(self, part_id, related_part_id, link_type="CHILD"):
         """Link two parts in a parent/child relationship.
         
         Parameter ``link_type`` is either CHILD or PARENT.
         """
         url = "parts/%s/links?linkType=%s" % (part_id, link_type)
-        data = {'id': related_part_id}
-        return self.request('POST', url, data=data, response_type='raw')
-    
-    def unlink_parts(self, part_id, related_part_id, link_type='CHILD'):
+        data = {"id": related_part_id}
+        return self.request("POST", url, data=data, response_type="raw")
+
+    def unlink_parts(self, part_id, related_part_id, link_type="CHILD"):
         """Remove a parent/child relationship between two parts."""
-        url = "parts/%s/links/%s?linkType=%s" % (part_id, related_part_id,
-                                                 link_type)
-        return self.request('DELETE', url, response_type='raw')
-    
+        url = "parts/%s/links/%s?linkType=%s" % (
+            part_id,
+            related_part_id,
+            link_type,
+        )
+        return self.request("DELETE", url, response_type="raw")
+
     def remove_all_part_links(self, part_id=None, linked_parts=None):
         if part_id is not None:
-            linked_parts = self.get_part_infos(part_id)['linkedParts']
+            linked_parts = self.get_part_infos(part_id)["linkedParts"]
         for linked_part in self.logger.iter_bar(linked_part=linked_parts):
-            for link_type in ['CHILD', 'PARENT']:
+            for link_type in ["CHILD", "PARENT"]:
                 try:
-                    self.unlink_parts(part_id, linked_part['id'],
-                                    link_type=link_type)
+                    self.unlink_parts(
+                        part_id, linked_part["id"], link_type=link_type
+                    )
                 except:
                     pass
-    
+
     def __get_collection_entries(self, collection, ignored_folders=()):
         """Return all entries in a given collection"""
-        return sum([
-            self.get_folder_entries(f)
-            for f in self.get_collection_folders(collection)
-            if f not in ignored_folders
-        ], [])
+        return sum(
+            [
+                self.get_folder_entries(f)
+                for f in self.get_collection_folders(collection)
+                if f not in ignored_folders
+            ],
+            [],
+        )
+
