@@ -8,11 +8,13 @@ import icebreaker
 
 ice = icebreaker.IceClient("../api_tokens/admin.yaml")
 folders = ice.get_collection_folders("SHARED")
-folders = folders[:8]  # comment me out
+# folders = folders[:4]  # test with a small part
+local_data_folder = "local_data"
+os.mkdir(local_data_folder)
 
 for folder in folders:
     print("Processing folder", folder["folderName"])
-    local_folder_path = os.path.join("local_data", folder["folderName"])
+    local_folder_path = os.path.join(local_data_folder, folder["folderName"])
     if not os.path.exists(local_folder_path):
         os.mkdir(local_folder_path)
     parts_in_folder = ice.get_folder_entries(folder_id=folder["id"])
@@ -23,7 +25,7 @@ for folder in folders:
     if not os.path.exists(parts_data_path):
         os.mkdir(parts_data_path)
     parts_infos_list = []
-    for part in parts_in_folder[:5]:
+    for part in parts_in_folder:
         print("... entry", part["name"])
         part_infos = ice.get_part_infos(part["id"])
         parts_infos_list.append(part_infos)
