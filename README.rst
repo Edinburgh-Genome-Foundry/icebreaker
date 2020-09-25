@@ -1,35 +1,44 @@
+.. raw:: html
+
+    <p align="center">
+    <img alt="IceBreaker Logo" title="IceBreaker" src="https://raw.githubusercontent.com/Edinburgh-Genome-Foundry/icebreaker/master/docs/_static/title.svg" width="450">
+    <br /><br />
+    </p>
+
+
 IceBreaker
-----------
+==========
 
-..
-    .. image:: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker.svg?branch=master
-        :target: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker
+.. image:: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker.svg?branch=master
+    :target: https://travis-ci.org/Edinburgh-Genome-Foundry/icebreaker
 
-    .. image:: https://coveralls.io/repos/github/Edinburgh-Genome-Foundry/icebreaker/badge.svg?branch=master
-        :target: https://coveralls.io/github/Edinburgh-Genome-Foundry/icebreaker?branch=master
+.. image:: https://coveralls.io/repos/github/Edinburgh-Genome-Foundry/icebreaker/badge.svg?branch=master
+    :target: https://coveralls.io/github/Edinburgh-Genome-Foundry/icebreaker?branch=master
 
 
 Icebreaker provides a Python interface for the `JBEI ICE sample manager <https://github.com/JBEI/ice>`_.
 
-See the full API documentation `here <https://edinburgh-genome-foundry.github.io/icebreaker/>`_
+See the full API documentation `here <https://edinburgh-genome-foundry.github.io/icebreaker/>`_.
+
 
 Installation
--------------
+------------
 
-Icebreaker is written for Python 3+. You can install icebreaker via PIP:
+Icebreaker is written for Python 3. You can install icebreaker via PIP:
 
 .. code::
 
     sudo pip install icebreaker
 
-Alternatively, you can unzip the sources in a folder and type
+Alternatively, you can unzip the sources in a folder and type:
 
 .. code::
 
     sudo python setup.py install
 
+
 Example of use
----------------
+--------------
 
 In this example we assume that we are a lab who wants to find primers from its
 database to sequence a given construct. We will (1) pull all our primers from
@@ -37,10 +46,11 @@ ICE, (2) find which primers are adapted to our sequence, using the
 `Primavera package <https://edinburgh-genome-foundry.github.io/Primavera/>`_, and
 (3) we will ask ICE for the location of the selected primers.
 
-Connexion to an ICE instance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can connecct to your ICE instance using either an API token (see below
+Connection to an ICE instance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can connect to your ICE instance using either an API token (see below
 for how to create a token), or an email/password authentication.
 
 .. code:: python
@@ -75,6 +85,7 @@ The configuration can also be written in a yaml file so you can write
     root: https://my.ice.instance.org
     email: michael.swann@genomefoundry.org
     password: ic3ic3baby
+
 
 Extracting all records from a folder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,24 +165,25 @@ the web interface as follows (see screenshot for indications):
 0. Create an account with administrator rights
 1. Go to the administrator panel
 2. Click on "API keys"
-3. Click on "create new". Note everything down !
+3. Click on "create new". Note everything down!
 
 .. image:: https://github.com/Edinburgh-Genome-Foundry/icebreaker/raw/master/docs/_static/api_key_screenshot.png
    :alt: screenshot
    :align: center
 
+
 License = MIT
---------------
+-------------
 
 Icebreaker is an open-source software originally written at the Edinburgh
 Genome Foundry by `Zulko <https://github.com/Zulko>`_ and `released on
 Github <https://github.com/Edinburgh-Genome-Foundry/icebreaker>`_ under
-the MIT licence (Copyright Edinburg Genome Foundry). Everyone is welcome to
-contribute !
+the MIT licence (Copyright 2017 Edinburgh Genome Foundry). Everyone is welcome to
+contribute!
 
 
 More biology software
------------------------
+---------------------
 
 .. image:: https://raw.githubusercontent.com/Edinburgh-Genome-Foundry/Edinburgh-Genome-Foundry.github.io/master/static/imgs/logos/egf-codon-horizontal.png
  :target: https://edinburgh-genome-foundry.github.io/
