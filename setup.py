@@ -1,19 +1,29 @@
 import ez_setup
+
 ez_setup.use_setuptools()
 
 from setuptools import setup, find_packages
 
-exec(open('icebreaker/version.py').read()) # loads __version__
+exec(open("icebreaker/version.py").read())  # loads __version__
 
 setup(
-    name='icebreaker',
+    name="icebreaker",
     version=__version__,
-    author='Zulko',
-    description='Python API for the JBEI ICE sample manager.',
-    long_description=open('README.rst').read(),
-    license='see LICENSE.txt',
+    author="Zulko",
+    description="Python API for the JBEI ICE sample manager.",
+    long_description=open("README.rst").read(),
+    license="MIT",
     keywords="synthetic biology sample manager",
-    packages=find_packages(exclude='docs'),
+    packages=find_packages(exclude="docs"),
     include_package_data=True,
-    install_requires=["requests>=2.20.0", "fuzzywuzzy", "proglog", "biopython",
-                      "pandas", "pyyaml", "requests-cache", "flametree"])
+    install_requires=[
+        "requests>=2.20.0",
+        "fuzzywuzzy",
+        "proglog",
+        "biopython",
+        "pandas",
+        "pyyaml",
+        "requests-cache",
+        "flametree",
+    ],
+)
